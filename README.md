@@ -6,6 +6,10 @@ HerdLine counts goats in a gate video. A farmer uploads a clip, says how many go
 
 https://github.com/Yunis-konda001/herdLine
 
+## Demo video
+
+https://youtu.be/s_iRQ79fcIs
+
 ## What is in the project
 
 - `notebooks/goat_detection_and_counting.ipynb` — data charts, model notes, and test-set scores
