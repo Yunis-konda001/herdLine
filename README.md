@@ -4,9 +4,7 @@ HerdLine counts goats in a gate video. A farmer uploads a clip, says how many go
 
 ## GitHub
 
-Add the repository link here after the first push:
-
-`https://github.com/<your-username>/<repo-name>`
+https://github.com/Yunis-konda001/herdLine
 
 ## What is in the project
 
