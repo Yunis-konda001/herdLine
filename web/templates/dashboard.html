@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — HerdLine{% endblock %}
+{% block screen_title %}{% endblock %}
+{% block body %}
+  <main class="content-main page-dashboard" id="dashboard-root">
+    <div class="app-container">
+      <header class="page-intro page-intro--clean">
+        <h1 class="dash-greeting">Hello, <span id="dashboard-greeting-name">there</span>!</h1>
+        <p class="page-subtitle" id="dashboard-farm-name">Your farm · gate counts on this device</p>
+      </header>
+
+      <div class="dashboard-grid">
+        <section class="card card--featured">
+          <h2 class="card-heading">Latest check-in</h2>
+          <div class="card-body" id="dashboard-last-checkin"></div>
+        </section>
+
+        <aside class="card card--side">
+          <h2 class="card-heading">Quick actions</h2>
+          <p class="card-muted">Run a new count or browse past summaries.</p>
+          <a class="btn-primary btn-block" href="/">New check-in</a>
+          <a class="btn-secondary btn-block" href="/checkins">View history</a>
+          <a class="btn-secondary btn-block" href="/signup">Farm profile</a>
+        </aside>
+
+        <section class="card card--wide">
+          <div class="card-header card-header--row">
+            <h2 class="card-heading">Recent check-ins</h2>
+            <a class="text-link" href="/checkins">See all</a>
+          </div>
+          <div class="table-wrap">
+            <table class="checkin-table">
+              <thead>
+                <tr>
+                  <th>When</th>
+                  <th>Count</th>
+                  <th>Summary</th>
+                  <th>Status</th>
+                  <th class="th-actions"><span class="sr-only">Actions</span></th>
+                </tr>
+              </thead>
+              <tbody id="dashboard-checkins-body"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <details class="card card--tips card--flat" id="presenter-tips" hidden>
+        <summary class="card-summary">Presenter tips</summary>
+        <ul class="tech-list">
+          <li>Open History and tap Yesterday for a past check-in.</li>
+          <li>Run a live New check-in, then return here for Today’s row.</li>
+        </ul>
+      </details>
+
+      <p class="app-footer">Saved on this device only</p>
+    </div>
+  </main>
+{% endblock %}

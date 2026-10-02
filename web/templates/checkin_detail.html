@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Check-in — HerdLine{% endblock %}
+{% block screen_title %}Check-in detail{% endblock %}
+{% block back_href %}/checkins{% endblock %}
+{% block body %}
+  <main class="content-main page-result">
+    <div class="app-container app-container--narrow clean-flow clean-flow--wide">
+      <div id="checkin-detail-root" data-checkin-id="{{ checkin_id }}"></div>
+    </div>
+  </main>
+{% endblock %}

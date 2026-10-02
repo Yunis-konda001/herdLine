@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}New check-in — HerdLine{% endblock %}
+{% block screen_title %}New check-in{% endblock %}
+{% block body %}
+  <div class="loading-overlay" id="loading-overlay">
+    <div class="loading-box">
+      <div class="spinner"></div>
+      <p id="loading-message">Processing your video</p>
+      <p class="loading-step" id="loading-step">Detecting goats…</p>
+    </div>
+  </div>
+
+  <main class="content-main">
+    <div class="clean-flow">
+      <div class="flow-icon" aria-hidden="true">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M4 12c4-8 12-8 16 0s-12 8-16 0z"/>
+        </svg>
+      </div>
+
+      <h1 class="flow-question">How many goats are in your herd?</h1>
+      <p class="flow-hint">Upload one gate video. We count crossings and show who may be missing.</p>
+
+      <p class="flow-banner" id="setup-farm-banner" hidden>
+        <a href="/signup">Create your farm profile</a> first for a personalized dashboard.
+      </p>
+      {% if has_model %}
+      <p class="flow-status flow-status--ok">Detector ready</p>
+      {% else %}
+      <p class="flow-status flow-status--warn">Using generic weights — add best.pt for best accuracy</p>
+      {% endif %}
+
+      <form class="clean-form" id="count-form" action="/count" method="post" enctype="multipart/form-data">
+        <div class="field field--clean">
+          <label for="herd_size">Herd size</label>
+          <input type="number" id="herd_size" name="herd_size" class="input-clean input-clean--hero" min="1" max="9999" required placeholder="20">
+        </div>
+
+        <div class="field field--clean">
+          <label for="video-input">Passage video</label>
+          <label class="input-file" id="file-label" for="video-input">Tap to choose video</label>
+          <input type="file" id="video-input" name="video" accept="video/*" required>
+        </div>
+
+        <button type="submit" class="btn-primary btn-block" id="submit-btn">Continue</button>
+
+        <details class="clean-details">
+          <summary>Line settings (advanced)</summary>
+          <div class="field-grid">
+            <div class="field field--clean">
+              <label for="line_mode">Line type</label>
+              <select id="line_mode" name="line_mode" class="input-clean">
+                <option value="vertical" {% if default_line_mode == 'vertical' %}selected{% endif %}>Road (left ↔ right)</option>
+                <option value="horizontal" {% if default_line_mode == 'horizontal' %}selected{% endif %}>Pass (top ↔ bottom)</option>
+              </select>
+            </div>
+            <div class="field-row line-pos-row">
+              <div class="field field--clean field-line-x">
+                <label for="line_x">Line (L → R)</label>
+                <input type="number" class="input-clean" id="line_x" name="line_x" min="0" max="1" step="0.05" value="{{ default_line_x }}">
+              </div>
+              <div class="field field--clean field-line-y">
+                <label for="line_y">Line (T → B)</label>
+                <input type="number" class="input-clean" id="line_y" name="line_y" min="0" max="1" step="0.05" value="{{ default_line_y }}">
+              </div>
+            </div>
+            <div class="field field--clean">
+              <label for="direction">Direction</label>
+              <select id="direction" name="direction" class="input-clean" data-default-vertical="{{ default_direction }}" data-default-horizontal="down">
+                <option value="right_to_left" {% if default_direction == 'right_to_left' %}selected{% endif %}>Right → left</option>
+                <option value="left_to_right">Left → right</option>
+                <option value="down">Top → bottom</option>
+                <option value="up">Bottom → top</option>
+              </select>
+            </div>
+          </div>
+        </details>
+      </form>
+    </div>
+  </main>
+{% endblock %}
+{% block scripts %}
+  <script src="/static/main.js?v={{ asset_version | default('12') }}"></script>
+{% endblock %}

@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+# ML outputs (regenerated locally)
+runs/
+notebooks/runs/
+outputs/uploads/
+outputs/results/*
+!outputs/results/.gitkeep
+!outputs/.gitkeep
+
+# Stock YOLO file. Ultralytics downloads this again if it is missing.
+yolov8n.pt
+
+# Dataset is large (~9 GB). Keep it on your machine. goat.yaml stays in git.
+data/train/
+data/valid/
+data/test/
+*.cache
+
+# Large / local-only
+data/raw/
+*.zip
+*.7z
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

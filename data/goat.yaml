@@ -1,0 +1,9 @@
+# Alias config for Ultralytics training (same as yolo.yaml)
+path: C:/capstone/data
+train: train/images
+val: valid/images
+test: test/images
+
+nc: 1
+names:
+  - goat

@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Check-in summary — HerdLine{% endblock %}
+{% block screen_title %}Summary{% endblock %}
+{% block back_href %}/dashboard{% endblock %}
+{% block body %}
+  <main class="content-main page-result summary-enter">
+    <div class="app-container app-container--narrow clean-flow clean-flow--wide">
+      {% set status = result.herd_match_status %}
+      <div class="result-stack">
+        <section class="summary-hero status-{{ status }}">
+          <div class="summary-hero__top">
+            <span class="summary-date-label">Check-in · {{ recorded_at[:10] if recorded_at else 'Today' }}</span>
+            {% if status == 'complete' %}
+            <span class="badge badge-complete">Complete</span>
+            {% elif status == 'missing' %}
+            <span class="badge badge-missing">Missing</span>
+            {% elif status == 'extra' %}
+            <span class="badge badge-extra">Review</span>
+            {% endif %}
+          </div>
+
+          <h1 class="summary-headline">
+            {% if status == 'complete' %}
+              All accounted for
+            {% elif status == 'missing' %}
+              {{ result.missing_count }} goat{% if result.missing_count != 1 %}s{% endif %} may be missing
+            {% elif status == 'extra' %}
+              Extra goats detected
+            {% else %}
+              Counting complete
+            {% endif %}
+          </h1>
+
+          <p class="summary-lede">
+            {% if result.herd_size is not none %}
+              {{ result.total_count }} counted of {{ result.herd_size }} in your herd.
+            {% else %}
+              {{ result.total_count }} goats counted in this video.
+            {% endif %}
+          </p>
+
+          <div class="summary-numbers">
+            <div class="summary-num">
+              <span class="summary-num-label">Counted</span>
+              <span class="summary-num-value">{{ result.total_count }}</span>
+            </div>
+            {% if result.herd_size is not none %}
+            <div class="summary-num">
+              <span class="summary-num-label">Your herd</span>
+              <span class="summary-num-value">{{ result.herd_size }}</span>
+            </div>
+            <div class="summary-num summary-num-accent">
+              <span class="summary-num-label">{% if status == 'extra' %}Extra{% else %}Missing{% endif %}</span>
+              <span class="summary-num-value">
+                {% if status == 'extra' %}{{ result.extra_count }}{% elif status == 'missing' %}{{ result.missing_count }}{% else %}0{% endif %}
+              </span>
+            </div>
+            {% endif %}
+          </div>
+
+          {% if result.counting_accuracy is not none %}
+          <p class="summary-accuracy">Match accuracy {{ (result.counting_accuracy * 100) | round(1) }}%</p>
+          {% endif %}
+        </section>
+
+        {% if video_url %}
+        <section class="card">
+          <h2 class="card-heading">Annotated video</h2>
+          <div class="video-wrap">
+            <video controls playsinline src="{{ video_url }}"></video>
+          </div>
+        </section>
+        {% endif %}
+
+        <details class="card card--flat">
+          <summary class="card-summary">Technical details</summary>
+          <ul class="tech-list">
+            <li>Check-in ID: {{ checkin_id }}</li>
+            <li>Frames processed: {{ result.frames_processed }}</li>
+            <li>Tracks counted: {{ result.track_ids_counted | length }}</li>
+          </ul>
+        </details>
+
+        <div class="action-row">
+          <a class="btn-primary" href="/dashboard">View dashboard</a>
+          <a class="btn-secondary" href="/">New check-in</a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script type="application/json" id="checkin-payload">{{ checkin_json | safe }}</script>
+{% endblock %}

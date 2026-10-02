@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}HerdLine{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css?v={{ asset_version | default('12') }}">
+  {% block head_extra %}{% endblock %}
+</head>
+<body>
+  <div class="page-bg" aria-hidden="true"></div>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Sidebar">
+      <a class="sidebar-logo" href="/dashboard">HerdLine</a>
+      <div class="sidebar-user">
+        <div class="sidebar-user__avatar" id="sidebar-avatar" aria-hidden="true">·</div>
+        <p class="sidebar-user__name" id="sidebar-farmer-name">Guest</p>
+        <p class="sidebar-user__farm" id="sidebar-farm-name">Set up your farm</p>
+      </div>
+      <nav class="sidebar-nav" aria-label="Main">
+        <a href="/" class="sidebar-nav__item{% if active_nav == 'checkin' %} is-active{% endif %}">New check-in</a>
+        <a href="/dashboard" class="sidebar-nav__item{% if active_nav == 'dashboard' %} is-active{% endif %}">Dashboard</a>
+        <a href="/checkins" class="sidebar-nav__item{% if active_nav == 'history' %} is-active{% endif %}">History</a>
+      </nav>
+      <nav class="sidebar-nav sidebar-nav--bottom" aria-label="Account">
+        <a href="/signup" class="sidebar-nav__item{% if active_nav == 'account' %} is-active{% endif %}" id="nav-profile">Farm profile</a>
+      </nav>
+    </aside>
+
+    <div class="app-stage">
+      <header class="screen-header">
+        <button type="button" class="screen-header__menu" id="sidebar-toggle" aria-label="Open menu">☰</button>
+        <a href="{% block back_href %}/dashboard{% endblock %}" class="screen-header__back" aria-label="Go back">←</a>
+        <p class="screen-header__title">{% block screen_title %}HerdLine{% endblock %}</p>
+        <div class="screen-header__spacer"></div>
+      </header>
+      {% block body %}{% endblock %}
+    </div>
+  </div>
+
+  <nav class="mobile-nav" aria-label="Mobile">
+    <a href="/" class="mobile-nav__item{% if active_nav == 'checkin' %} is-active{% endif %}">Check-in</a>
+    <a href="/dashboard" class="mobile-nav__item{% if active_nav == 'dashboard' %} is-active{% endif %}">Home</a>
+    <a href="/checkins" class="mobile-nav__item{% if active_nav == 'history' %} is-active{% endif %}">History</a>
+    <a href="/signup" class="mobile-nav__item{% if active_nav == 'account' %} is-active{% endif %}">Profile</a>
+  </nav>
+
+  <script src="/static/history.js?v={{ asset_version | default('12') }}"></script>
+  <script src="/static/shell.js?v={{ asset_version | default('12') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

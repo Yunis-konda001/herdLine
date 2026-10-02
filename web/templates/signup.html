@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Farm profile — HerdLine{% endblock %}
+{% block screen_title %}Create farm profile{% endblock %}
+{% block back_href %}/dashboard{% endblock %}
+{% block body %}
+  <main class="content-main">
+    <div class="clean-flow">
+      <div class="flow-icon" aria-hidden="true">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+        </svg>
+      </div>
+
+      <h1 class="flow-question">Set up your farm</h1>
+      <p class="flow-hint">Saved on this device only. You can edit before your demo.</p>
+
+      <div class="profile-mini" id="profile-preview" aria-live="polite">
+        <span class="profile-mini__avatar" id="preview-avatar">?</span>
+        <span class="profile-mini__text"><strong id="preview-farm">Farm name</strong> · <span id="preview-farmer">Farmer</span> · herd <span id="preview-herd">—</span></span>
+      </div>
+
+      <form class="clean-form" id="signup-form">
+        <div class="field field--clean">
+          <label for="farm_name">Farm name</label>
+          <input type="text" class="input-clean" id="farm_name" name="farm_name" required placeholder="Green Valley Goats" autocomplete="organization">
+        </div>
+        <div class="field field--clean">
+          <label for="farmer_name">Your name</label>
+          <input type="text" class="input-clean" id="farmer_name" name="farmer_name" required placeholder="Alex Farmer" autocomplete="name">
+        </div>
+        <div class="field field--clean">
+          <label for="contact">Phone or email</label>
+          <input type="text" class="input-clean" id="contact" name="contact" required placeholder="name@farm.com" autocomplete="email">
+        </div>
+        <div class="field field--clean">
+          <label for="profile_herd_size">Default herd size</label>
+          <input type="number" class="input-clean" id="profile_herd_size" name="profile_herd_size" min="1" max="9999" required placeholder="20">
+        </div>
+        <div class="field field--clean">
+          <label for="location_note">Gate note (optional)</label>
+          <input type="text" class="input-clean" id="location_note" name="location_note" placeholder="North pasture camera">
+        </div>
+        <button type="submit" class="btn-primary btn-block">Continue</button>
+      </form>
+      <p class="flow-footer-link">Returning? <a href="/login">Sign in</a></p>
+      <span id="preview-checkins" hidden></span>
+      <span id="preview-contact" hidden></span>
+    </div>
+  </main>
+{% endblock %}
+{% block scripts %}
+  <script src="/static/auth.js?v={{ asset_version | default('12') }}"></script>
+{% endblock %}

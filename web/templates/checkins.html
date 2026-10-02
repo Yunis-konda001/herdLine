@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}History — HerdLine{% endblock %}
+{% block screen_title %}History{% endblock %}
+{% block body %}
+  <main class="content-main page-dashboard">
+    <div class="app-container">
+      <header class="page-intro">
+        <h1 class="page-title">Check-in history</h1>
+        <p class="page-subtitle">Every gate count from this device, newest first. Use × to remove entries you do not need.</p>
+      </header>
+
+      <div class="filter-chips" role="tablist" aria-label="Filter check-ins">
+        <button type="button" class="chip active" data-filter="all">All</button>
+        <button type="button" class="chip" data-filter="complete">Complete</button>
+        <button type="button" class="chip" data-filter="missing">Missing</button>
+        <button type="button" class="chip" data-filter="extra">Review</button>
+      </div>
+
+      <section class="card card--wide">
+        <div class="table-wrap">
+          <table class="checkin-table">
+            <thead>
+              <tr>
+                <th>When</th>
+                <th>Count</th>
+                <th>Summary</th>
+                <th>Status</th>
+                <th class="th-actions"><span class="sr-only">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody id="checkins-list-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <a class="text-link text-link--back" href="/dashboard">← Back to dashboard</a>
+      <p class="app-footer">Check-ins saved on this device only</p>
+    </div>
+  </main>
+{% endblock %}

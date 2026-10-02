@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Sign in — HerdLine{% endblock %}
+{% block screen_title %}Welcome back{% endblock %}
+{% block body %}
+  <main class="content-main">
+    <div class="clean-flow">
+      <div class="flow-icon" aria-hidden="true">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 118 0v3"/>
+        </svg>
+      </div>
+
+      <h1 class="flow-question">What's your farm name?</h1>
+      <p class="flow-hint">We match the profile saved on this device.</p>
+
+      <div id="login-existing" class="clean-panel" hidden>
+        <div class="profile-mini profile-mini--center">
+          <span class="profile-mini__avatar profile-mini__avatar--lg" id="login-avatar">?</span>
+          <p class="profile-mini__farm" id="login-farm-name"></p>
+          <p class="profile-mini__person" id="login-farmer-name"></p>
+        </div>
+        <button type="button" class="btn-primary btn-block" id="login-continue">Continue</button>
+        <a class="flow-footer-link" href="/signup">Edit profile</a>
+      </div>
+
+      <form class="clean-form" id="login-form">
+        <div class="field field--clean">
+          <label for="login_farm_name">Farm name</label>
+          <input type="text" class="input-clean" id="login_farm_name" name="login_farm_name" required placeholder="Same as your profile">
+        </div>
+        <button type="submit" class="btn-primary btn-block">Continue</button>
+      </form>
+      <p class="flow-footer-link" id="login-form-footer">New here? <a href="/signup">Create profile</a></p>
+    </div>
+  </main>
+{% endblock %}
+{% block scripts %}
+  <script src="/static/auth.js?v={{ asset_version | default('12') }}"></script>
+{% endblock %}
