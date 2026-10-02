@@ -51,7 +51,15 @@ It shows the dataset, what YOLOv8n is, and the test-set scores. On the held-out 
 
 ## Screenshots
 
-The demo UI has four main screens: farm profile, new check-in, summary, and history. Drop screenshots in `docs/screenshots/` if you want them in the repo, then link them here.
+Farm profile, new check-in, summary, and history.
+
+![Farm profile](docs/screenshots/profile.png)
+
+![New check-in](docs/screenshots/check-in.png)
+
+![Summary](docs/screenshots/summary.png)
+
+![History](docs/screenshots/history.png)
 
 ## Deployment
 
