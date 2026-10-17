@@ -9,6 +9,8 @@ venv/
 runs/
 notebooks/runs/
 outputs/uploads/
+outputs/herdline.db
+outputs/.session_secret
 outputs/results/*
 !outputs/results/.gitkeep
 !outputs/.gitkeep

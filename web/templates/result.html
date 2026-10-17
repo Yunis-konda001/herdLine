@@ -78,6 +78,9 @@
             <li>Check-in ID: {{ checkin_id }}</li>
             <li>Frames processed: {{ result.frames_processed }}</li>
             <li>Tracks counted: {{ result.track_ids_counted | length }}</li>
+            {% for line in result.report_lines() %}
+            <li>{{ line }}</li>
+            {% endfor %}
           </ul>
         </details>
 

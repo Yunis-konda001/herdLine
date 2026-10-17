@@ -1,8 +1,11 @@
-# HerdLine ByteTrack — longer buffer to reduce ID swaps at the gate
+# HerdLine ByteTrack.
+# The detector keeps boxes at 0.15. A new track must be allowed at that same
+# score, or a goat is seen for several frames with no ID and then gets a new
+# ID once the score rises, often after it has already crossed the line.
 tracker_type: bytetrack
-track_high_thresh: 0.28
-track_low_thresh: 0.12
-new_track_thresh: 0.28
-track_buffer: 60
-match_thresh: 0.75
+track_high_thresh: 0.15
+track_low_thresh: 0.08
+new_track_thresh: 0.15
+track_buffer: 90
+match_thresh: 0.70
 fuse_score: true

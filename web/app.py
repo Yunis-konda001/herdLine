@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import secrets
 import shutil
 import sys
 import uuid
@@ -9,20 +10,23 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import FastAPI, File, Form, Request, UploadFile
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from src.accounts import authenticate, create_user, get_user, init_db  # noqa: E402
 from src.config import (  # noqa: E402
     DEFAULT_CROSSING_DIRECTION,
     DEFAULT_LINE_MODE,
     DEFAULT_LINE_X,
     DEFAULT_LINE_Y,
     DEFAULT_WEIGHTS,
+    OUTPUT_DIR,
     RESULTS_DIR,
     UPLOAD_DIR,
 )
@@ -31,9 +35,11 @@ from src.counting_pipeline import CountingPipeline  # noqa: E402
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
-ASSET_VERSION = "12"
+ASSET_VERSION = "17"
+SESSION_SECRET_PATH = OUTPUT_DIR / ".session_secret"
 
 app = FastAPI(title="HerdLine")
+init_db()
 
 
 class NoCacheHtmlMiddleware(BaseHTTPMiddleware):
@@ -45,14 +51,61 @@ class NoCacheHtmlMiddleware(BaseHTTPMiddleware):
         return response
 
 
+def _session_secret() -> str:
+    if SESSION_SECRET_PATH.is_file():
+        saved = SESSION_SECRET_PATH.read_text(encoding="utf-8").strip()
+        if saved:
+            return saved
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    secret = secrets.token_hex(32)
+    SESSION_SECRET_PATH.write_text(secret, encoding="utf-8")
+    return secret
+
+
 app.add_middleware(NoCacheHtmlMiddleware)
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=_session_secret(),
+    session_cookie="herdline_session",
+    max_age=60 * 60 * 24 * 14,
+    same_site="lax",
+    https_only=False,
+)
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 app.mount("/static", StaticFiles(directory=str(Path(__file__).parent / "static")), name="static")
 app.mount("/results", StaticFiles(directory=str(RESULTS_DIR)), name="results")
 
 
-def _page_context(**extra):
-    return {"asset_version": ASSET_VERSION, **extra}
+def _page_context(request: Request, **extra):
+    user_id = request.session.get("user_id")
+    user = get_user(int(user_id)) if user_id else None
+    return {"asset_version": ASSET_VERSION, "current_user": user, **extra}
+
+
+def _auth_page(
+    request: Request,
+    mode: str,
+    error: str = "",
+    email: str = "",
+    farm_name: str = "",
+    farmer_name: str = "",
+    herd_size: str = "",
+    status_code: int = 200,
+):
+    return templates.TemplateResponse(
+        request=request,
+        name="auth.html",
+        status_code=status_code,
+        context=_page_context(
+            request,
+            mode=mode,
+            error=error,
+            email=email,
+            farm_name=farm_name,
+            farmer_name=farmer_name,
+            herd_size=herd_size,
+        ),
+    )
 
 
 def _weights_path() -> Path | str:
@@ -76,6 +129,7 @@ async def index(request: Request):
         request=request,
         name="index.html",
         context=_page_context(
+            request,
             active_nav="checkin",
             has_model=has_model,
             default_line_mode=DEFAULT_LINE_MODE,
@@ -91,7 +145,7 @@ async def dashboard(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="dashboard.html",
-        context=_page_context(active_nav="dashboard"),
+        context=_page_context(request, active_nav="dashboard"),
     )
 
 
@@ -100,7 +154,7 @@ async def checkins_list(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="checkins.html",
-        context=_page_context(active_nav="history"),
+        context=_page_context(request, active_nav="history"),
     )
 
 
@@ -109,26 +163,94 @@ async def checkin_detail(request: Request, checkin_id: str):
     return templates.TemplateResponse(
         request=request,
         name="checkin_detail.html",
-        context=_page_context(checkin_id=checkin_id, active_nav="history"),
+        context=_page_context(request, checkin_id=checkin_id, active_nav="history"),
     )
 
 
 @app.get("/signup", response_class=HTMLResponse)
 async def signup(request: Request):
-    return templates.TemplateResponse(
-        request=request,
-        name="signup.html",
-        context=_page_context(active_nav="account"),
-    )
+    return _auth_page(request, mode="signup")
+
+
+@app.post("/signup", response_class=HTMLResponse)
+async def signup_submit(
+    request: Request,
+    email: str = Form(""),
+    password: str = Form(""),
+    farm_name: str = Form(""),
+    farmer_name: str = Form(""),
+    herd_size: str = Form(""),
+):
+    email = email.strip()
+    farm_name = farm_name.strip()
+    farmer_name = farmer_name.strip()
+    try:
+        herd = int(herd_size)
+    except ValueError:
+        herd = 0
+    if not email or "@" not in email or not farm_name or not farmer_name or herd < 1:
+        return _auth_page(
+            request,
+            mode="signup",
+            error="Enter an email, a farm name, your name, and a herd size.",
+            email=email,
+            farm_name=farm_name,
+            farmer_name=farmer_name,
+            herd_size=herd_size,
+            status_code=400,
+        )
+    if len(password) < 8:
+        return _auth_page(
+            request,
+            mode="signup",
+            error="Use a password of at least 8 characters.",
+            email=email,
+            farm_name=farm_name,
+            farmer_name=farmer_name,
+            herd_size=herd_size,
+            status_code=400,
+        )
+    user = create_user(email, password, farm_name, farmer_name, herd)
+    if user is None:
+        return _auth_page(
+            request,
+            mode="signin",
+            error="That email already has an account. Sign in instead.",
+            email=email,
+            status_code=400,
+        )
+    request.session["user_id"] = user["id"]
+    return RedirectResponse("/dashboard", status_code=303)
 
 
 @app.get("/login", response_class=HTMLResponse)
 async def login(request: Request):
-    return templates.TemplateResponse(
-        request=request,
-        name="login.html",
-        context=_page_context(active_nav="account"),
-    )
+    return _auth_page(request, mode="signin")
+
+
+@app.post("/login", response_class=HTMLResponse)
+async def login_submit(
+    request: Request,
+    email: str = Form(""),
+    password: str = Form(""),
+):
+    user = authenticate(email, password)
+    if user is None:
+        return _auth_page(
+            request,
+            mode="signin",
+            error="Email or password does not match.",
+            email=email.strip(),
+            status_code=400,
+        )
+    request.session["user_id"] = user["id"]
+    return RedirectResponse("/dashboard", status_code=303)
+
+
+@app.post("/logout")
+async def logout(request: Request):
+    request.session.clear()
+    return RedirectResponse("/login", status_code=303)
 
 
 @app.post("/count", response_class=HTMLResponse)
@@ -165,7 +287,10 @@ async def count_goats(
         upload_path,
         output_video=out_path,
         herd_size=herd,
+        session_name=job_id,
     )
+    report_path = RESULTS_DIR / f"{job_id}_report.txt"
+    report_path.write_text("\n".join(result.report_lines()) + "\n", encoding="utf-8")
 
     recorded_at = datetime.now(timezone.utc).isoformat()
     video_url = f"/results/{out_name}"
@@ -192,6 +317,7 @@ async def count_goats(
         request=request,
         name="result.html",
         context=_page_context(
+            request,
             active_nav="history",
             result=result,
             video_url=video_url,

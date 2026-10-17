@@ -30,9 +30,21 @@
     }
   }
 
+  function accountId() {
+    const id = global.HERDLINE_USER && global.HERDLINE_USER.id;
+    return id ? String(id) : "";
+  }
+
+  function checkinsKey() {
+    const id = accountId();
+    return id ? CHECKINS_KEY + ":" + id : "";
+  }
+
   function getCheckins() {
+    const key = checkinsKey();
+    if (!key) return [];
     try {
-      const raw = localStorage.getItem(CHECKINS_KEY);
+      const raw = localStorage.getItem(key);
       const list = safeParse(raw, []);
       return Array.isArray(list) ? list : [];
     } catch (_) {
@@ -41,7 +53,9 @@
   }
 
   function setCheckins(list) {
-    localStorage.setItem(CHECKINS_KEY, JSON.stringify(list));
+    const key = checkinsKey();
+    if (!key) return;
+    localStorage.setItem(key, JSON.stringify(list));
   }
 
   function saveCheckin(record) {
@@ -394,6 +408,15 @@
   };
 
   document.addEventListener("DOMContentLoaded", () => {
+    if (global.HERDLINE_USER && global.HERDLINE_USER.farmName) {
+      saveFarmer({
+        farmName: global.HERDLINE_USER.farmName,
+        farmerName: global.HERDLINE_USER.farmerName || "",
+        contact: global.HERDLINE_USER.email || "",
+        herdSize: global.HERDLINE_USER.herdSize || 0,
+        locationNote: "",
+      });
+    }
     updateNavAccount();
     showSetupBanner();
     saveFromPayloadElement();

@@ -7,11 +7,15 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/style.css?v={{ asset_version | default('12') }}">
+  <link rel="stylesheet" href="/static/style.css?v={{ asset_version | default('13') }}">
   {% block head_extra %}{% endblock %}
 </head>
-<body>
-  <div class="page-bg" aria-hidden="true"></div>
+<body class="{% if current_user %}is-signed-in{% endif %}">
+  <div class="page-bg" aria-hidden="true">
+    {% if current_user %}
+      <img class="page-bg__photo" src="/static/auth-goats.jpg?v={{ asset_version | default('17') }}" alt="">
+    {% endif %}
+  </div>
   <div class="app-shell">
     <aside class="sidebar" aria-label="Sidebar">
       <a class="sidebar-logo" href="/dashboard">HerdLine</a>
@@ -26,7 +30,13 @@
         <a href="/checkins" class="sidebar-nav__item{% if active_nav == 'history' %} is-active{% endif %}">History</a>
       </nav>
       <nav class="sidebar-nav sidebar-nav--bottom" aria-label="Account">
-        <a href="/signup" class="sidebar-nav__item{% if active_nav == 'account' %} is-active{% endif %}" id="nav-profile">Farm profile</a>
+        {% if current_user %}
+          <form method="post" action="/logout" id="logout-form">
+            <button type="submit" class="sidebar-nav__item sidebar-nav__button">Log out</button>
+          </form>
+        {% else %}
+          <a href="/login" class="sidebar-nav__item{% if active_nav == 'account' %} is-active{% endif %}" id="nav-profile">Sign in</a>
+        {% endif %}
       </nav>
     </aside>
 
@@ -45,11 +55,20 @@
     <a href="/" class="mobile-nav__item{% if active_nav == 'checkin' %} is-active{% endif %}">Check-in</a>
     <a href="/dashboard" class="mobile-nav__item{% if active_nav == 'dashboard' %} is-active{% endif %}">Home</a>
     <a href="/checkins" class="mobile-nav__item{% if active_nav == 'history' %} is-active{% endif %}">History</a>
-    <a href="/signup" class="mobile-nav__item{% if active_nav == 'account' %} is-active{% endif %}">Profile</a>
+    {% if current_user %}
+      <form method="post" action="/logout" class="mobile-logout" id="logout-form-mobile">
+        <button type="submit" class="mobile-nav__item mobile-nav__button">Log out</button>
+      </form>
+    {% else %}
+      <a href="/login" class="mobile-nav__item{% if active_nav == 'account' %} is-active{% endif %}">Sign in</a>
+    {% endif %}
   </nav>
 
-  <script src="/static/history.js?v={{ asset_version | default('12') }}"></script>
-  <script src="/static/shell.js?v={{ asset_version | default('12') }}"></script>
+  <script>
+    window.HERDLINE_USER = {{ current_user | tojson if current_user else "null" }};
+  </script>
+  <script src="/static/history.js?v={{ asset_version | default('13') }}"></script>
+  <script src="/static/shell.js?v={{ asset_version | default('13') }}"></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

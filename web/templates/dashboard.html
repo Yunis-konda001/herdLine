@@ -20,7 +20,9 @@
           <p class="card-muted">Run a new count or browse past summaries.</p>
           <a class="btn-primary btn-block" href="/">New check-in</a>
           <a class="btn-secondary btn-block" href="/checkins">View history</a>
-          <a class="btn-secondary btn-block" href="/signup">Farm profile</a>
+          {% if not current_user %}
+          <a class="btn-secondary btn-block" href="/login">Sign in</a>
+          {% endif %}
         </aside>
 
         <section class="card card--wide">
@@ -53,7 +55,7 @@
         </ul>
       </details>
 
-      <p class="app-footer">Saved on this device only</p>
+      <p class="app-footer">Check-in history stays on this device</p>
     </div>
   </main>
 {% endblock %}
