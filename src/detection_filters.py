@@ -1,4 +1,11 @@
-"""Keep only plausible goat detections for counting and overlay."""
+"""Keep only boxes that look like real goats for counting.
+
+Steps:
+1. Drop low scores and tiny boxes.
+2. Drop very tall boxes that look like a standing person.
+3. Drop boxes that overlap a COCO person detection.
+4. If two boxes cover the same goat, keep the stronger one.
+"""
 from __future__ import annotations
 
 from src.config import (
@@ -11,7 +18,7 @@ from src.person_filter import PersonFilter, _box_iou, _centroid_in
 
 
 def _looks_like_standing_person(box: list[float], conf: float, frame_shape) -> bool:
-    """Heuristic when COCO person miss (small/distant human misclassified as goat)."""
+    """Extra check when the COCO person model misses a distant human."""
     x1, y1, x2, y2 = box
     bw, bh = max(x2 - x1, 1e-6), max(y2 - y1, 1e-6)
     aspect = bh / bw
@@ -28,6 +35,7 @@ def select_goat_indices(
     class_ids: list[int],
     person_filter: PersonFilter,
 ) -> list[int]:
+    """Return the box indexes that should be counted and drawn."""
     person_boxes = person_filter.person_boxes(frame_bgr)
     keep: list[int] = []
     for i, box in enumerate(xyxy):
@@ -51,14 +59,14 @@ def select_goat_indices(
 
 
 def _same_animal(a: list[float], b: list[float]) -> bool:
-    """A head box inside a body box is still one goat."""
+    """True when two boxes are likely the same goat (body + head)."""
     if _box_iou(a, b) >= 0.30:
         return True
     return _centroid_in(a, b) or _centroid_in(b, a)
 
 
 def _drop_overlapping(indices, xyxy, confidences):
-    """One goat was getting two boxes. Keep the stronger box."""
+    """One goat must not get two counts. Keep the higher-score box."""
     ordered = sorted(indices, key=lambda i: float(confidences[i]), reverse=True)
     kept: list[int] = []
     for i in ordered:

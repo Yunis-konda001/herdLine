@@ -1,4 +1,4 @@
-"""Make OpenCV MP4 files playable in web browsers (H.264 + faststart)."""
+"""Re-encode OpenCV MP4 files so browsers can play them."""
 from __future__ import annotations
 
 import shutil
@@ -7,6 +7,7 @@ from pathlib import Path
 
 
 def _ffmpeg_path() -> str | None:
+    """Find ffmpeg on the system or from imageio-ffmpeg."""
     system = shutil.which("ffmpeg")
     if system:
         return system
@@ -19,9 +20,10 @@ def _ffmpeg_path() -> str | None:
 
 
 def make_browser_playable(video_path: Path) -> Path:
-    """
-    Re-encode to H.264/yuv420p so HTML5 <video> can read duration and play.
-    Overwrites the file when conversion succeeds.
+    """Convert the file to H.264 so the result page video player works.
+
+    OpenCV often writes mp4v, which many browsers refuse. This step overwrites
+    the file with a browser-friendly copy when ffmpeg is available.
     """
     video_path = Path(video_path)
     if not video_path.is_file() or video_path.stat().st_size == 0:

@@ -1,4 +1,4 @@
-"""YOLO-based goat detection and tracking wrapper."""
+"""Load YOLO and run detection plus tracking on one video frame."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -15,14 +15,17 @@ from src.config import (
 
 
 class GoatDetector:
+    """Thin wrapper around Ultralytics YOLO.track."""
+
     def __init__(self, weights: Path | str | None = None) -> None:
+        # Prefer the fine-tuned goat weights. Fall back to stock YOLO if missing.
         path = weights if weights else FALLBACK_WEIGHTS
         if isinstance(path, Path) and not path.is_file():
             path = FALLBACK_WEIGHTS
         self.model = YOLO(str(path))
 
     def track_frame(self, frame, persist: bool = True):
-        """Run detection + tracking on one BGR frame."""
+        """Detect goats and keep temporary track IDs across frames."""
         return self.model.track(
             frame,
             persist=persist,

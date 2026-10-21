@@ -1,4 +1,7 @@
-"""End-to-end video counting: detect, track, line count, optional annotated output."""
+"""Run one full count: open video → detect → filter → track → count → save.
+
+This is the path used by the website when a farmer uploads a gate video.
+"""
 from __future__ import annotations
 
 from pathlib import Path
@@ -26,6 +29,7 @@ from src.video_processor import VideoProcessor
 
 
 class CountingPipeline:
+    """Wire detector, filters, track memory, and line counter together."""
     def __init__(
         self,
         weights: Path | str | None = None,

@@ -1,4 +1,4 @@
-"""OpenCV video read/write helpers."""
+"""Read frames from a video file and create writers for annotated output."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -7,6 +7,8 @@ import cv2
 
 
 class VideoProcessor:
+    """Open a video with OpenCV and yield frames one by one."""
+
     def __init__(self, source: Path | str) -> None:
         self.source = Path(source)
         self.cap = cv2.VideoCapture(str(self.source))
@@ -24,9 +26,11 @@ class VideoProcessor:
     @property
     def fps(self) -> float:
         fps = self.cap.get(cv2.CAP_PROP_FPS)
+        # Some clips report 0 fps; use 25 so writing still works.
         return fps if fps and fps > 0 else 25.0
 
     def frames(self):
+        """Yield each BGR frame until the video ends."""
         while True:
             ok, frame = self.cap.read()
             if not ok:
@@ -38,6 +42,7 @@ class VideoProcessor:
 
     @staticmethod
     def create_writer(output: Path, width: int, height: int, fps: float):
+        """Create an MP4 writer for the annotated video."""
         output.parent.mkdir(parents=True, exist_ok=True)
         fourcc = cv2.VideoWriter_fourcc(*"mp4v")
         writer = cv2.VideoWriter(

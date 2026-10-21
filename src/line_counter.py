@@ -1,4 +1,12 @@
-"""Count a goat only when it crosses the line. Ignore goats already past it."""
+"""Count each goat once at the gate line.
+
+Rules in plain words:
+- Count when the goat is first seen on the entry side (or a wide box still
+  reaches the entry side).
+- Never count the same temporary ID twice.
+- Do not count a goat that is already deep past the line on first sight.
+- Ignore tiny noise boxes and a second box that is clearly the same goat.
+"""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -6,6 +14,8 @@ from dataclasses import dataclass
 
 @dataclass
 class _PendingHandoff:
+    """A track that disappeared near the line; may hand off to a new ID."""
+
     track_id: int
     cx: float
     cy: float
@@ -13,12 +23,7 @@ class _PendingHandoff:
 
 
 class LineCounter:
-    """
-    Count a goat once, when it is first seen on the entry side of the line.
-
-    The same track keeps that count after it crosses. A track that is already
-    on the exit side the first time it is seen is not counted.
-    """
+    """One count per goat for a vertical or horizontal gate line."""
 
     HANDOFF_CY_TOLERANCE = 0.15
     HANDOFF_MAX_FRAMES = 15

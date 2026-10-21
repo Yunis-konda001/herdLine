@@ -1,13 +1,13 @@
-"""Keep one ID when a goat's box disappears for a few frames."""
+"""Keep one temporary ID when a goat box flickers off for a few frames.
+
+ByteTrack often starts a new ID after a miss. That new ID was counted again
+and made totals too high. TrackMemory links the returning box to the old ID.
+"""
 from __future__ import annotations
 
 
 class TrackMemory:
-    """Links flickering detections of the same goat.
-
-    ByteTrack starts a new ID when the box vanishes. This remembers the last
-    place the goat was seen and reuses that ID if the box comes back nearby.
-    """
+    """Match a new detection to a recent goat by position and travel direction."""
 
     def __init__(self, max_gap: int = 10, direction: str = "right_to_left") -> None:
         self.max_gap = max_gap

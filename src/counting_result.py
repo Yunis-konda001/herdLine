@@ -1,4 +1,8 @@
-"""Result of a counting run."""
+"""Store one counting run: total, herd size, and the short text report.
+
+Accuracy is 100% only when the system total matches the herd size.
+Extra counts and missed goats both lower the score.
+"""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -7,6 +11,7 @@ from pathlib import Path
 
 @dataclass
 class CountingResult:
+    """Numbers shown on the result page and in the technical report."""
     total_count: int
     frames_processed: int
     output_video: Path | None = None
