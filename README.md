@@ -85,5 +85,4 @@ The training cell has already been run. Do not run it again unless you want to r
 
 ## Public testing
 
-For your defense, share a temporary public URL while the laptop runs the app.
-Follow [docs/DEPLOY.md](docs/DEPLOY.md).
+Yet to be deployed
