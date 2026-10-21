@@ -21,8 +21,8 @@ The system uses **YOLOv8n** for goat detection and **ByteTrack** for tracking, t
 
 ## Demo
 
-- 🎥 **Demo video:** [https://youtu.be/s_iRQ79fcIs](https://youtu.be/s_iRQ79fcIs)
-- 🌐 **Public test URL:** see [`docs/DEPLOY.md`](docs/DEPLOY.md)
+- **Demo video:** [https://youtu.be/s_iRQ79fcIs](https://youtu.be/s_iRQ79fcIs)
+- **Public test URL:** Not Yet deployed
 
 ### Screenshots
 
