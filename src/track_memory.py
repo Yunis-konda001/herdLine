@@ -1,22 +1,18 @@
-"""Keep one temporary ID when a goat box flickers off for a few frames.
-
-ByteTrack often starts a new ID after a miss. That new ID was counted again
-and made totals too high. TrackMemory links the returning box to the old ID.
-"""
+"""Reuse one ID when a goat box flickers off for a few frames."""
 from __future__ import annotations
 
 
 class TrackMemory:
-    """Match a new detection to a recent goat by position and travel direction."""
+    """Match a new box to a recent goat by place and travel direction."""
 
-    def __init__(self, max_gap: int = 10, direction: str = "right_to_left") -> None:
+    def __init__(self, max_gap: int = 18, direction: str = "right_to_left") -> None:
         self.max_gap = max_gap
         self.direction = direction
         self._next_id = 1
         self._tracks: dict[int, dict] = {}
 
     def assign(self, cx: float, cy: float, bw: float, bh: float, frame: int) -> tuple[int, int]:
-        """Return (stable id, times this goat has been seen)."""
+        # Returns (id, how many times this goat was seen)
         self._expire(frame)
         match = self._nearest(cx, cy, bw, bh, frame)
         if match is None:
@@ -49,7 +45,7 @@ class TrackMemory:
         return match, track["hits"]
 
     def ghosts(self, frame: int) -> list[tuple[float, float, float, float, int]]:
-        """Boxes to keep drawing while the detector misses for a few frames."""
+        # Draw a faded box while the detector misses for a short time
         held: list[tuple[float, float, float, float, int]] = []
         for tid, track in self._tracks.items():
             gap = frame - track["frame"]
@@ -69,13 +65,13 @@ class TrackMemory:
                 continue
             pred_x = track["cx"] + track["vx"] * gap
             pred_y = track["cy"] + track["vy"] * gap
-            # A box back toward the gate is the next goat, not this one.
+            # Box back toward the gate is the next goat, not this one
             if self._upstream(cx, cy, track["cx"], track["cy"]):
                 continue
             scale_x = max(bw, track["bw"], 0.1)
             scale_y = max(bh, track["bh"], 0.1)
-            allowed_x = min(0.28, 0.60 * scale_x + 0.025 * gap)
-            allowed_y = min(0.11, 0.40 * scale_y + 0.012 * gap)
+            allowed_x = min(0.22, 0.55 * scale_x + 0.02 * gap)
+            allowed_y = min(0.10, 0.35 * scale_y + 0.01 * gap)
             dx = abs(cx - pred_x)
             dy = abs(cy - pred_y)
             if dx <= allowed_x and dy <= allowed_y:
@@ -86,7 +82,6 @@ class TrackMemory:
         return best_id
 
     def _upstream(self, cx: float, cy: float, px: float, py: float) -> bool:
-        """True when the new box is back toward the entrance."""
         slack = 0.08
         if self.direction == "right_to_left":
             return cx > px + slack
@@ -99,7 +94,7 @@ class TrackMemory:
         return False
 
     def _clamp_velocity(self, vx: float, vy: float) -> tuple[float, float]:
-        """Do not predict a goat walking back toward the entrance."""
+        # Do not predict a goat walking back toward the entrance
         if self.direction == "right_to_left":
             return min(0.0, vx), vy
         if self.direction == "left_to_right":

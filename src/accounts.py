@@ -1,8 +1,4 @@
-"""Farmer accounts: sign up, sign in, and look up a logged-in user.
-
-Passwords are stored as a hash. The plain password is never saved.
-Accounts live in a small SQLite file under outputs/.
-"""
+"""Sign-up and sign-in. Passwords are stored as a hash only."""
 from __future__ import annotations
 
 import hashlib
@@ -16,7 +12,6 @@ DB_PATH = OUTPUT_DIR / "herdline.db"
 
 
 def _connect() -> sqlite3.Connection:
-    """Open the accounts database (create the folder if needed)."""
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -24,7 +19,6 @@ def _connect() -> sqlite3.Connection:
 
 
 def init_db() -> None:
-    """Create the users table the first time the app starts."""
     with _connect() as conn:
         conn.execute(
             """
@@ -42,7 +36,6 @@ def init_db() -> None:
 
 
 def hash_password(password: str, salt: str | None = None) -> str:
-    """Turn a password into salt + hash so we never store the real password."""
     salt = salt or secrets.token_hex(16)
     digest = hashlib.pbkdf2_hmac(
         "sha256", password.encode("utf-8"), salt.encode("utf-8"), 200_000
@@ -51,7 +44,6 @@ def hash_password(password: str, salt: str | None = None) -> str:
 
 
 def verify_password(password: str, stored: str) -> bool:
-    """Return True when the typed password matches the saved hash."""
     salt, _, _ = stored.partition("$")
     if not salt or "$" not in stored:
         return False
@@ -59,7 +51,6 @@ def verify_password(password: str, stored: str) -> bool:
 
 
 def _public(row: sqlite3.Row) -> dict:
-    """Fields safe to send to the browser (no password hash)."""
     return {
         "id": row["id"],
         "email": row["email"],
@@ -77,7 +68,7 @@ def create_user(
     farmer_name: str,
     herd_size: int,
 ) -> dict | None:
-    """Save a new farmer. Returns None if that email is already used."""
+    # Returns None if the email is already used
     init_db()
     created = datetime.now(timezone.utc).isoformat()
     try:
@@ -104,7 +95,6 @@ def create_user(
 
 
 def authenticate(email: str, password: str) -> dict | None:
-    """Check email and password. Returns the user dict, or None if wrong."""
     init_db()
     with _connect() as conn:
         row = conn.execute(
@@ -117,7 +107,6 @@ def authenticate(email: str, password: str) -> dict | None:
 
 
 def get_user(user_id: int) -> dict | None:
-    """Load one user by id (used for the logged-in session)."""
     init_db()
     with _connect() as conn:
         row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()

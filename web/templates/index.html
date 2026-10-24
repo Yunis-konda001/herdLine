@@ -68,7 +68,7 @@
               <label for="direction">Direction</label>
               <select id="direction" name="direction" class="input-clean" data-default-vertical="{{ default_direction }}" data-default-horizontal="down">
                 <option value="right_to_left" {% if default_direction == 'right_to_left' %}selected{% endif %}>Right → left</option>
-                <option value="left_to_right">Left → right</option>
+                <option value="left_to_right" {% if default_direction == 'left_to_right' %}selected{% endif %}>Left → right</option>
                 <option value="down">Top → bottom</option>
                 <option value="up">Bottom → top</option>
               </select>

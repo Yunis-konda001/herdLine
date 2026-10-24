@@ -1,11 +1,4 @@
-"""HerdLine website: accounts, upload, count, and show results.
-
-Routes:
-- /login and /signup — create or open a farm account
-- / — new check-in (upload a gate video)
-- /dashboard and /checkins — history for this browser account
-- POST /count — run the counting pipeline and show the summary
-"""
+"""HerdLine website: accounts, upload, count, and results."""
 from __future__ import annotations
 
 import json

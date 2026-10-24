@@ -4,6 +4,7 @@ __pycache__/
 .venv/
 venv/
 .env
+.pytest_cache/
 
 # ML outputs (regenerated locally)
 runs/
@@ -12,11 +13,17 @@ outputs/uploads/
 outputs/herdline.db
 outputs/.session_secret
 outputs/results/*
+outputs/_nb_*
+outputs/_*.py
+outputs/_*.txt
 !outputs/results/.gitkeep
 !outputs/.gitkeep
 
 # Stock YOLO file. Ultralytics downloads this again if it is missing.
 yolov8n.pt
+
+# Large baseline weights — only best.pt (YOLOv8n) is needed to run the app
+models/weights/faster_rcnn_goat.pt
 
 # Dataset is large (~9 GB). Keep it on your machine. goat.yaml stays in git.
 data/train/
