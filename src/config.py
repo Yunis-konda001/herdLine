@@ -12,22 +12,24 @@ DEFAULT_DATASET_YAML = DATA_DIR / "goat.yaml"
 DEFAULT_WEIGHTS = MODELS_DIR / "best.pt"
 FALLBACK_WEIGHTS = "yolov8n.pt"
 
-# Default gate line (vertical, centre). Direction can be changed on upload.
+# Virtual gate line — a goat is counted when its centre crosses this line
 DEFAULT_LINE_MODE = "vertical"
 DEFAULT_LINE_X = 0.5
 DEFAULT_LINE_Y = 0.5
 DEFAULT_CROSSING_DIRECTION = "right_to_left"
 
-# 640 keeps counting fast; filters still drop weak background boxes
-CONFIDENCE_THRESHOLD = 0.25
-IOU_THRESHOLD = 0.45
-DETECT_IMGSZ = 640
+# Recall-first so crowded clips stay close to the hand count
+CONFIDENCE_THRESHOLD = 0.18
+IOU_THRESHOLD = 0.70
+DETECT_IMGSZ = 960
 
 GOAT_CLASS_ID = 0
-GOAT_MIN_CONFIDENCE = 0.28
-GOAT_MAX_HEIGHT_WIDTH = 2.3
-GOAT_MIN_HEIGHT_WIDTH = 0.50
-MIN_BOX_PX = 40
-MAX_BOX_AREA_FRAC = 0.40
+GOAT_MIN_CONFIDENCE = 0.18
+GOAT_MAX_HEIGHT_WIDTH = 2.4
+GOAT_MIN_HEIGHT_WIDTH = 0.45
+MIN_BOX_PX = 32
+MAX_BOX_AREA_FRAC = 0.45
+
+MIN_TRACK_HITS = 1
 
 TRACKER = PROJECT_ROOT / "config" / "bytetrack.yaml"

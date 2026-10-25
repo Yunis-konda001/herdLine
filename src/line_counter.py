@@ -1,34 +1,22 @@
-"""Count each goat once when its centre crosses the gate line.
+"""Count each goat once when its centre crosses the virtual gate line.
 
 Background boxes that never cross the line are ignored.
 The same track ID is never counted twice.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
-
-
-@dataclass
-class _PendingHandoff:
-    track_id: int
-    cx: float
-    cy: float
-    frame: int
-
 
 class LineCounter:
     """One count per goat for a vertical or horizontal gate line."""
 
-    # Off by default: ID handoff was double-counting goats on several clips
-    HANDOFF_CY_TOLERANCE = 0.10
-    HANDOFF_MAX_FRAMES = 0
-    LINE_BAND = 0.25
     LINE_EPS = 0.01
-    SAME_GOAT_DIST = 0.08
-    SAME_GOAT_DY = 0.10
-    MIN_AREA = 0.010
-    MIN_SIDE = 0.09
-    CROSS_MARGIN = 0.01
+    # Tight: only block a *new* ID that is almost on top of a just-counted goat
+    SAME_GOAT_DIST = 0.055
+    SAME_GOAT_DY = 0.08
+    MIN_AREA = 0.008
+    MIN_SIDE = 0.08
+    CROSS_MARGIN = 0.005
+    NEAR_FRAMES = 12
 
     def __init__(
         self,
@@ -50,18 +38,11 @@ class LineCounter:
 
         self._prev_x: dict[int, float] = {}
         self._prev_y: dict[int, float] = {}
-        self._zone: dict[int, str] = {}
         self._last_cx: dict[int, float] = {}
         self._last_cy: dict[int, float] = {}
-        self._last_bw: dict[int, float] = {}
-        self._last_bh: dict[int, float] = {}
         self._last_frame: dict[int, int] = {}
         self._seen_entry: set[int] = set()
-
         self._frame_idx = 0
-        self._ids_this_frame: set[int] = set()
-        self._ids_prev_frame: set[int] = set()
-        self._pending: list[_PendingHandoff] = []
 
         if orientation == "horizontal":
             if direction not in ("down", "up"):
@@ -72,49 +53,9 @@ class LineCounter:
 
     def begin_frame(self, frame_index: int) -> None:
         self._frame_idx = frame_index
-        self._ids_this_frame = set()
 
     def end_frame(self) -> None:
-        if self.HANDOFF_MAX_FRAMES <= 0:
-            self._ids_prev_frame = set(self._ids_this_frame)
-            self._pending.clear()
-            return
-
-        # Tracks lost near the line may hand off to a new ID on the exit side
-        lost = self._ids_prev_frame - self._ids_this_frame
-        for track_id in lost:
-            if track_id in self._counted or track_id in self._already_past:
-                continue
-            if track_id not in self._seen_entry:
-                continue
-            cx = self._last_cx.get(track_id)
-            cy = self._last_cy.get(track_id)
-            if cx is None or cy is None:
-                continue
-            if self._line_distance(cx, cy) > self.LINE_BAND:
-                continue
-            self._pending.append(
-                _PendingHandoff(track_id=track_id, cx=cx, cy=cy, frame=self._frame_idx)
-            )
-
-        new_ids = self._ids_this_frame - self._ids_prev_frame
-        for track_id in new_ids:
-            if track_id in self._counted or track_id in self._already_past:
-                continue
-            cx = self._last_cx.get(track_id)
-            cy = self._last_cy.get(track_id)
-            if cx is None or cy is None:
-                continue
-            if self._current_zone(cx, cy) != "exit":
-                continue
-            if self._line_distance(cx, cy) > self.LINE_BAND:
-                self._already_past.add(track_id)
-                continue
-            if not self._try_handoff_count(cy, track_id):
-                self._already_past.add(track_id)
-
-        self._ids_prev_frame = set(self._ids_this_frame)
-        self._expire_pending()
+        return
 
     def update(
         self,
@@ -125,48 +66,36 @@ class LineCounter:
         bh: float = 0.0,
         confirmed: bool = True,
     ) -> bool:
-        if track_id < 0:
+        if track_id < 0 or not confirmed:
             return False
 
-        self._ids_this_frame.add(track_id)
         zone = self._current_zone(cx_norm, cy_norm)
 
         if track_id in self._counted or track_id in self._already_past:
-            self._remember(track_id, cx_norm, cy_norm, bw, bh)
-            self._store_prev(track_id, cx_norm, cy_norm)
-            self._zone[track_id] = zone
-            return False
-
-        if not confirmed:
-            self._remember(track_id, cx_norm, cy_norm, bw, bh)
-            self._zone[track_id] = zone
+            self._remember(track_id, cx_norm, cy_norm)
             self._store_prev(track_id, cx_norm, cy_norm)
             return False
 
-        # Tiny noise never counts
         if bw > 0 and bh > 0 and bw * bh < self.MIN_AREA and max(bw, bh) < self.MIN_SIDE:
             self._already_past.add(track_id)
-            self._remember(track_id, cx_norm, cy_norm, bw, bh)
+            self._remember(track_id, cx_norm, cy_norm)
             self._store_prev(track_id, cx_norm, cy_norm)
-            self._zone[track_id] = zone
             return False
 
-        # Same goat already counted nearby — do not count again
-        if self._near_counted(cx_norm, cy_norm):
+        # New ID almost on top of a goat that just counted — same animal, skip
+        if self._match_counted(cx_norm, cy_norm) is not None:
             self._already_past.add(track_id)
-            self._remember(track_id, cx_norm, cy_norm, bw, bh)
+            self._remember(track_id, cx_norm, cy_norm)
             self._store_prev(track_id, cx_norm, cy_norm)
-            self._zone[track_id] = zone
             return False
 
-        # First sight: only watch. Count happens on a real line cross later.
+        # First sight: watch only. Count only when the line is crossed.
         if track_id not in self._prev_x:
             if zone in ("entry", "mid"):
                 self._seen_entry.add(track_id)
-            elif zone == "exit" and self._line_distance(cx_norm, cy_norm) > self.LINE_BAND:
+            elif zone == "exit" and self._line_distance(cx_norm, cy_norm) > 0.22:
                 self._already_past.add(track_id)
-            self._remember(track_id, cx_norm, cy_norm, bw, bh)
-            self._zone[track_id] = zone
+            self._remember(track_id, cx_norm, cy_norm)
             self._store_prev(track_id, cx_norm, cy_norm)
             return False
 
@@ -176,37 +105,32 @@ class LineCounter:
         crossed = self._centroid_crossed(track_id, cx_norm, cy_norm)
         on_entry_before = track_id in self._seen_entry or self._was_on_entry_side(track_id)
 
-        self._remember(track_id, cx_norm, cy_norm, bw, bh)
+        self._remember(track_id, cx_norm, cy_norm)
 
         if on_entry_before and crossed:
-            self._register_count(track_id)
-            self._zone[track_id] = zone
+            self._counted.add(track_id)
+            self.total += 1
             self._store_prev(track_id, cx_norm, cy_norm)
             return True
 
-        self._zone[track_id] = zone if zone != "mid" else self._zone.get(track_id, "mid")
-        if zone == "mid" and self._zone.get(track_id) == "entry":
-            self._zone[track_id] = "mid"
         self._store_prev(track_id, cx_norm, cy_norm)
         return False
 
-    def same_goat_id(self, track_id: int, cx: float, cy: float, bw: float = 0.0, bh: float = 0.0) -> int:
-        match = self._match_counted(cx, cy)
-        if match is None or match == track_id:
+    def same_goat_id(
+        self, track_id: int, cx: float, cy: float, bw: float = 0.0, bh: float = 0.0
+    ) -> int:
+        # Do not remap uncounted tracks — that was merging separate goats
+        if track_id in self._counted:
             return track_id
+        match = self._match_counted(cx, cy)
+        if match is None:
+            return track_id
+        # Only remap onto an already-counted ID (ID swap after a count)
         return match
 
-    def _register_count(self, track_id: int, cy: float | None = None) -> None:
-        if track_id in self._counted:
-            return
-        self._counted.add(track_id)
-        self.total += 1
-
-    def _remember(self, track_id: int, cx: float, cy: float, bw: float, bh: float) -> None:
+    def _remember(self, track_id: int, cx: float, cy: float) -> None:
         self._last_cx[track_id] = cx
         self._last_cy[track_id] = cy
-        self._last_bw[track_id] = bw
-        self._last_bh[track_id] = bh
         self._last_frame[track_id] = self._frame_idx
 
     def _store_prev(self, track_id: int, cx: float, cy: float) -> None:
@@ -220,15 +144,12 @@ class LineCounter:
             return False
         return self._current_zone(px, py) in ("entry", "mid")
 
-    def _near_counted(self, cx: float, cy: float) -> bool:
-        return self._match_counted(cx, cy) is not None
-
     def _match_counted(self, cx: float, cy: float) -> int | None:
         best_id = None
         best_dist = 999.0
         for track_id in self._counted:
             seen = self._last_frame.get(track_id)
-            if seen is None or self._frame_idx - seen > 8:
+            if seen is None or self._frame_idx - seen > self.NEAR_FRAMES:
                 continue
             px = self._last_cx.get(track_id)
             py = self._last_cy.get(track_id)
@@ -291,32 +212,6 @@ class LineCounter:
         if self.direction == "left_to_right":
             return prev < line - m and cx >= line
         return prev > line + m and cx <= line
-
-    def _try_handoff_count(self, cy: float, new_track_id: int) -> bool:
-        self._expire_pending()
-        best_idx = None
-        best_dy = self.HANDOFF_CY_TOLERANCE + 1.0
-        for i, pending in enumerate(self._pending):
-            if pending.track_id in self._counted:
-                continue
-            dy = abs(pending.cy - cy)
-            if dy <= self.HANDOFF_CY_TOLERANCE and dy < best_dy:
-                best_dy = dy
-                best_idx = i
-        if best_idx is None:
-            return False
-        pending = self._pending.pop(best_idx)
-        self._seen_entry.add(new_track_id)
-        self._register_count(new_track_id)
-        self._counted.add(pending.track_id)
-        self._zone[new_track_id] = "exit"
-        return True
-
-    def _expire_pending(self) -> None:
-        cutoff = self._frame_idx - self.HANDOFF_MAX_FRAMES
-        self._pending = [
-            p for p in self._pending if p.frame >= cutoff and p.track_id not in self._counted
-        ]
 
     @property
     def counted_ids(self) -> list[int]:

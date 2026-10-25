@@ -1,8 +1,8 @@
-# ByteTrack — matched to detector; background noise should not start tracks
+# ByteTrack — matched to detector for recall
 tracker_type: bytetrack
-track_high_thresh: 0.28
-track_low_thresh: 0.15
-new_track_thresh: 0.32
-track_buffer: 60
-match_thresh: 0.80
+track_high_thresh: 0.22
+track_low_thresh: 0.10
+new_track_thresh: 0.25
+track_buffer: 90
+match_thresh: 0.75
 fuse_score: true

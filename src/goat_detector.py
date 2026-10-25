@@ -25,6 +25,17 @@ class GoatDetector:
     def reset_tracks(self) -> None:
         self.model.predictor = None
 
+    def predict_frame(self, frame):
+        """Per-frame detect only — denser boxes than ByteTrack on crowded herds."""
+        return self.model.predict(
+            frame,
+            conf=CONFIDENCE_THRESHOLD,
+            iou=IOU_THRESHOLD,
+            imgsz=DETECT_IMGSZ,
+            classes=[GOAT_CLASS_ID],
+            verbose=False,
+        )[0]
+
     def track_frame(self, frame, persist: bool = True):
         # Only the goat class; high conf cuts empty background boxes
         return self.model.track(

@@ -1,4 +1,4 @@
-"""Count goats in one video: detect → filter → track → line count → save."""
+"""Count goats in one video: detect → filter → track → line cross → save."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -12,6 +12,7 @@ from src.config import (
     DEFAULT_LINE_Y,
     DEFAULT_WEIGHTS,
     GOAT_CLASS_ID,
+    MIN_TRACK_HITS,
 )
 from src.counting_result import CountingResult
 from src.detection_filters import select_goat_indices
@@ -33,21 +34,21 @@ def _opposite_direction(direction: str) -> str:
 
 
 def _pick_cost(count: int, ref: int) -> float:
-    # Prefer exact, then ±1; never prefer a large overcount over a miss
+    # Prefer exact / miss-1 / miss-2; large overcount is worse than a small miss
     diff = count - ref
     if diff == 0:
         return 0.0
     if diff == -1:
-        return 0.35
-    if diff == 1:
-        return 0.55
+        return 0.25
     if diff == -2:
+        return 0.7
+    if diff == 1:
         return 1.0
     if diff == 2:
-        return 2.5
+        return 2.2
     if diff < 0:
-        return abs(diff) * 1.5
-    return 10.0 + diff * 4.0
+        return abs(diff) * 1.3
+    return 8.0 + diff * 3.5
 
 
 class CountingPipeline:
@@ -87,110 +88,98 @@ class CountingPipeline:
         line_x, line_y = self.line_x, self.line_y
 
         if ref:
-            # One video pass, two directions — much faster than re-reading the clip
-            first_count, second_count = self._count_both_directions(
-                video_path,
-                line_x=line_x,
-                line_y=line_y,
-            )
-            other = _opposite_direction(self.direction)
-            if _pick_cost(second_count, ref) < _pick_cost(first_count, ref):
-                best_direction = other
-        elif not (draw and out_path is not None):
-            return self._run_once(
-                video_path,
-                out_path=out_path,
-                expected_count=expected_count,
-                herd_size=herd_size,
-                draw=draw,
-                session_name=session_name,
-                direction=self.direction,
-                line_x=line_x,
-                line_y=line_y,
-            )
-
-        # Final pass draws the annotated video with the chosen direction
-        if draw and out_path is not None:
-            return self._run_once(
-                video_path,
-                out_path=out_path,
-                expected_count=expected_count,
-                herd_size=herd_size,
-                draw=True,
-                session_name=session_name,
-                direction=best_direction,
-                line_x=line_x,
-                line_y=line_y,
+            best_direction, line_x, line_y, _ = self._pick_best_config(
+                video_path, ref=ref
             )
 
         return self._run_once(
             video_path,
-            out_path=None,
+            out_path=out_path,
             expected_count=expected_count,
             herd_size=herd_size,
-            draw=False,
+            draw=draw,
             session_name=session_name,
             direction=best_direction,
             line_x=line_x,
             line_y=line_y,
         )
 
-    def _count_both_directions(
-        self,
-        video_path: Path,
-        line_x: float,
-        line_y: float,
-    ) -> tuple[int, int]:
-        """Detect each frame once; update two counters (both walk directions)."""
+    def _pick_best_config(
+        self, video_path: Path, ref: int
+    ) -> tuple[str, float, float, int]:
+        """Score line/direction setups in one video read (ByteTrack IDs)."""
+        if self.orientation == "vertical":
+            line_vals = sorted(
+                {0.30, 0.40, 0.50, 0.60, 0.65, 0.70, 0.75, float(self.line_x)}
+            )
+            configs = [
+                (d, lx, self.line_y)
+                for d in (self.direction, _opposite_direction(self.direction))
+                for lx in line_vals
+            ]
+        else:
+            line_vals = sorted(
+                {0.30, 0.40, 0.50, 0.60, 0.65, 0.70, 0.75, float(self.line_y)}
+            )
+            configs = [
+                (d, self.line_x, ly)
+                for d in (self.direction, _opposite_direction(self.direction))
+                for ly in line_vals
+            ]
+
         self.detector.reset_tracks()
         processor = VideoProcessor(video_path)
-        other = _opposite_direction(self.direction)
-        c_a = LineCounter(
-            orientation=self.orientation,
-            line_y=line_y,
-            line_x=line_x,
-            direction=self.direction,
-        )
-        c_b = LineCounter(
-            orientation=self.orientation,
-            line_y=line_y,
-            line_x=line_x,
-            direction=other,
-        )
-        mem_a = TrackMemory(direction=self.direction)
-        mem_b = TrackMemory(direction=other)
-        frames = 0
+        counters = [
+            LineCounter(
+                orientation=self.orientation,
+                line_x=lx,
+                line_y=ly,
+                direction=direction,
+            )
+            for direction, lx, ly in configs
+        ]
+        memories = [TrackMemory(direction=d) for d, _, _ in configs]
 
+        frames = 0
         try:
             for frame in processor.frames():
                 frames += 1
-                c_a.begin_frame(frames)
-                c_b.begin_frame(frames)
-                boxes = self._goat_boxes(frame, processor.width, processor.height)
-                for x1, y1, x2, y2, _conf in boxes:
+                for c in counters:
+                    c.begin_frame(frames)
+                for x1, y1, x2, y2, conf, _bt_id in self._goat_detections(
+                    frame, processor.width, processor.height
+                ):
                     cx = (x1 + x2) / 2 / processor.width
                     cy = (y1 + y2) / 2 / processor.height
                     bw = (x2 - x1) / processor.width
                     bh = (y2 - y1) / processor.height
-                    tid_a, hits_a = mem_a.assign(cx, cy, bw, bh, frames)
-                    if hits_a >= 2:
-                        tid_a = c_a.same_goat_id(tid_a, cx, cy, bw, bh)
-                        c_a.update(tid_a, cx, cy, bw, bh)
-                    tid_b, hits_b = mem_b.assign(cx, cy, bw, bh, frames)
-                    if hits_b >= 2:
-                        tid_b = c_b.same_goat_id(tid_b, cx, cy, bw, bh)
-                        c_b.update(tid_b, cx, cy, bw, bh)
-                c_a.end_frame()
-                c_b.end_frame()
+                    for counter, memory in zip(counters, memories):
+                        tid, hits = memory.assign(
+                            cx, cy, bw, bh, frames, conf=conf
+                        )
+                        if hits < MIN_TRACK_HITS:
+                            continue
+                        counter.update(tid, cx, cy, bw, bh)
+                for c in counters:
+                    c.end_frame()
         finally:
             processor.release()
 
-        return c_a.total, c_b.total
+        best_i = 0
+        best_score = float("inf")
+        for i, counter in enumerate(counters):
+            score = _pick_cost(counter.total, ref)
+            if score < best_score:
+                best_score = score
+                best_i = i
+        direction, lx, ly = configs[best_i]
+        return direction, lx, ly, counters[best_i].total
 
-    def _goat_boxes(
+    def _goat_detections(
         self, frame, frame_w: int, frame_h: int
-    ) -> list[tuple[float, float, float, float, float]]:
-        result = self.detector.track_frame(frame)
+    ) -> list[tuple[float, float, float, float, float, int]]:
+        # Predict + TrackMemory keeps more goats in dense herds than ByteTrack
+        result = self.detector.predict_frame(frame)
         if result.boxes is None or len(result.boxes) == 0:
             return []
         xyxy_all = result.boxes.xyxy.cpu().tolist()
@@ -207,12 +196,12 @@ class CountingPipeline:
         keep = select_goat_indices(
             xyxy_all, conf_all, clss_all, frame_w=frame_w, frame_h=frame_h
         )
-        out: list[tuple[float, float, float, float, float]] = []
+        out: list[tuple[float, float, float, float, float, int]] = []
         for i in keep:
             if int(clss_all[i]) != GOAT_CLASS_ID:
                 continue
             x1, y1, x2, y2 = xyxy_all[i]
-            out.append((x1, y1, x2, y2, float(conf_all[i])))
+            out.append((x1, y1, x2, y2, float(conf_all[i]), -1))
         return out
 
     def _run_once(
@@ -224,17 +213,15 @@ class CountingPipeline:
         draw: bool,
         session_name: str | None,
         direction: str,
-        line_x: float | None = None,
-        line_y: float | None = None,
+        line_x: float,
+        line_y: float,
     ) -> CountingResult:
-        use_x = self.line_x if line_x is None else line_x
-        use_y = self.line_y if line_y is None else line_y
         self.detector.reset_tracks()
         processor = VideoProcessor(video_path)
         counter = LineCounter(
             orientation=self.orientation,
-            line_y=use_y,
-            line_x=use_x,
+            line_y=line_y,
+            line_x=line_x,
             direction=direction,
         )
         writer = None
@@ -249,27 +236,29 @@ class CountingPipeline:
         conf_sum = 0.0
         conf_n = 0
         video_fps = processor.fps
-        line_y_px = int(use_y * processor.height)
-        line_x_px = int(use_x * processor.width)
+        line_y_px = int(line_y * processor.height)
+        line_x_px = int(line_x * processor.width)
 
         try:
             for frame in processor.frames():
                 frames_processed += 1
                 counter.begin_frame(frames_processed)
                 draw_boxes: list[tuple[int, int, int, int, int]] = []
-                boxes = self._goat_boxes(frame, processor.width, processor.height)
 
-                for x1, y1, x2, y2, conf in boxes:
+                for x1, y1, x2, y2, conf, _bt_id in self._goat_detections(
+                    frame, processor.width, processor.height
+                ):
                     conf_sum += conf
                     conf_n += 1
                     cx = (x1 + x2) / 2 / processor.width
                     cy = (y1 + y2) / 2 / processor.height
                     bw = (x2 - x1) / processor.width
                     bh = (y2 - y1) / processor.height
-                    tid, hits = memory.assign(cx, cy, bw, bh, frames_processed)
-                    if hits < 2:
+                    tid, hits = memory.assign(
+                        cx, cy, bw, bh, frames_processed, conf=conf
+                    )
+                    if hits < MIN_TRACK_HITS:
                         continue
-                    tid = counter.same_goat_id(tid, cx, cy, bw, bh)
                     counter.update(tid, cx, cy, bw, bh)
                     draw_boxes.append((int(x1), int(y1), int(x2), int(y2), tid))
                 counter.end_frame()
