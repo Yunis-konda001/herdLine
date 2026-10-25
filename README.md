@@ -16,6 +16,20 @@ Counts goats in a short gate video. Sign in, upload a clip, enter the herd size,
 | --- | --- |
 | ![Dashboard](docs/screenshots/dashboard.png) | ![History](docs/screenshots/history.png) |
 
+---
+
+## Tech stack
+
+| Layer | Tools |
+|---|---|
+| Detection | YOLOv8n (Ultralytics) |
+| Tracking | ByteTrack |
+| Backend | FastAPI + Uvicorn |
+| Frontend | HTML,CSS and Vanilla Javascript |
+| Deployment | Local; ONNX export for low-memory hosts |
+
+---
+
 ## Setup
 
 ```bash
@@ -25,7 +39,9 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-You need `models/weights/best.pt` (included). Training images are not in Git (~9 GB); only `data/goat.yaml` is.
+You need `models/weights/best.pt` (included). The training images are not in Git (~9 GB); only `data/goat.yaml` is included.
+
+---
 
 ## Run
 
@@ -33,35 +49,67 @@ You need `models/weights/best.pt` (included). Training images are not in Git (~9
 uvicorn web.app:app --reload --host 127.0.0.1 --port 8000
 ```
 
-Open http://127.0.0.1:8000 — sign up, start a check-in, upload a short gate video with the herd size.
+Open http://127.0.0.1:8000, sign up, start a check-in, and upload a short gate video with the herd size.
 
-## What’s in the repo
+---
+
+## What's in the repo
 
 | Path | Role |
-| --- | --- |
+|---|---|
 | `src/` | Detect, track, count |
 | `web/` | FastAPI site |
 | `models/weights/best.pt` | Fine-tuned YOLOv8n goat detector |
 | `config/bytetrack.yaml` | Tracker settings |
 | `data/videos/evaluation/` | Sample gate clips (hand counts in the filenames) |
-| `notebooks/goat_detection_and_counting.ipynb` | Training / evaluation notes |
+| `notebooks/goat_detection_and_counting.ipynb` | Training and evaluation notes |
 | `docs/DEPLOY.md` | How to share a public test URL |
-| `docs/screenshots/` | Web UI screenshots for this README |
+
+---
 
 ## How counting works
 
-1. YOLOv8n finds goats in each frame  
-2. Weak / odd boxes are filtered out  
-3. A goat is counted **once** when its centre crosses the yellow gate line  
-4. If herd size is given, walk direction and line position are chosen to match that size as closely as possible  
+1. YOLOv8n finds goats in each frame.
+2. Weak or odd boxes are filtered out.
+3. A goat is counted **once** when its centre crosses the yellow virtual gate line.
+4. If the herd size is given, the walk direction and line position are chosen to match that size as closely as possible.
 
-Prefer short clips. Long videos take longer.
+
+---
 
 ## Notebook
 
-Open `notebooks/goat_detection_and_counting.ipynb` for preprocessing, the R-CNN baseline, YOLO training, and metrics. Run training cells only when you can leave the machine on.
+Open `notebooks/goat_detection_and_counting.ipynb` for preprocessing, the Faster R-CNN baseline, YOLOv8n training, and metrics.
 
-## Author
+- **Validation metrics at the end of training:** precision 0.91, recall 0.76, mAP@50 0.84.
+- **Test-set metrics (held-out split):** precision 0.90, recall 0.74, F1 0.81, mAP@50 0.82.
 
-Kumi Yunis Konda — BSc Software Engineering, African Leadership University  
-Supervisor: Hubert Apana
+
+---
+
+## Dataset
+
+- **CherryChevre** — public goat dataset used for training and evaluation.
+- Training images (~9 GB) are kept locally and are not included in the repo.
+- Only `data/goat.yaml` is included so the data path can be reproduced.
+
+---
+
+## Known limitation
+
+Recall on real gate video is lower than on still images. The system might end undercounting or overcounting at some instances. 
+
+---
+
+## License
+
+Released for academic and research use. Third-party libraries retain their original licenses (Ultralytics AGPL-3.0, ByteTrack MIT, FastAPI MIT). Contact the author before commercial use.
+
+---
+
+## Contact
+
+- **Author:** Kumi Yunis Konda — k.konda@alustudent.com
+- **Supervisor:** Hubert Apana
+- **Institution:** African Leadership University, BSc Software Engineering
+- **Issues:** open an issue on [GitHub](https://github.com/Yunis-konda001/herdLine/issues)
