@@ -24,7 +24,7 @@ Smallholder goat farmers count their herds manually every evening. When herds gr
 | Tracking | ByteTrack |
 | Backend | FastAPI + Uvicorn |
 | Frontend | HTML,CSS and Vanilla Javascript |
-| Deployment | Local; ONNX export for low-memory hosts |
+| Deployment | Local (PyTorch) or Render with `best.onnx` + ONNX Runtime |
 
 ---
 
@@ -57,11 +57,14 @@ Open http://127.0.0.1:8000, sign up, start a check-in, and upload a short gate v
 |---|---|
 | `src/` | Detect, track, count |
 | `web/` | FastAPI site |
-| `models/weights/best.pt` | Fine-tuned YOLOv8n goat detector |
+| `models/weights/best.pt` | Fine-tuned YOLOv8n goat detector (local / training) |
+| `models/weights/best.onnx` | Same model for low-memory hosts (Render) |
 | `config/bytetrack.yaml` | Tracker settings |
 | `data/videos/evaluation/` | Sample gate clips (hand counts in the filenames) |
 | `notebooks/goat_detection_and_counting.ipynb` | Training and evaluation notes |
 | `docs/DEPLOY.md` | How to share a public test URL |
+| `docs/RENDER.md` | Render deploy with ONNX (no PyTorch) |
+| `requirements-render.txt` | Slim pip deps for Render |
 
 ---
 

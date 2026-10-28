@@ -25,6 +25,7 @@ from src.config import (  # noqa: E402
     DEFAULT_LINE_MODE,
     DEFAULT_LINE_X,
     DEFAULT_LINE_Y,
+    DEFAULT_ONNX_WEIGHTS,
     DEFAULT_WEIGHTS,
     OUTPUT_DIR,
     RESULTS_DIR,
@@ -37,6 +38,7 @@ RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
 ASSET_VERSION = "17"
 SESSION_SECRET_PATH = OUTPUT_DIR / ".session_secret"
+_PIPELINE_CACHE: dict[tuple, CountingPipeline] = {}
 
 app = FastAPI(title="HerdLine")
 init_db()
@@ -109,7 +111,30 @@ def _auth_page(
 
 
 def _weights_path() -> Path | str:
-    return DEFAULT_WEIGHTS if DEFAULT_WEIGHTS.is_file() else "yolov8n.pt"
+    # Prefer ONNX on deploy hosts (much lower RAM than PyTorch)
+    if DEFAULT_ONNX_WEIGHTS.is_file():
+        return DEFAULT_ONNX_WEIGHTS
+    if DEFAULT_WEIGHTS.is_file():
+        return DEFAULT_WEIGHTS
+    return "yolov8n.pt"
+
+
+def _get_pipeline(
+    line_mode: str, line_x: float, line_y: float, direction: str
+) -> CountingPipeline:
+    key = (_weights_path(), line_mode, float(line_x), float(line_y), direction)
+    pipe = _PIPELINE_CACHE.get(key)
+    if pipe is None:
+        pipe = CountingPipeline(
+            weights=_weights_path(),
+            line_mode=line_mode,
+            line_y=line_y,
+            line_x=line_x,
+            direction=direction,
+        )
+        _PIPELINE_CACHE.clear()
+        _PIPELINE_CACHE[key] = pipe
+    return pipe
 
 
 def _parse_direction(line_mode: str, direction: str) -> str:
@@ -124,7 +149,7 @@ def _parse_direction(line_mode: str, direction: str) -> str:
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
-    has_model = DEFAULT_WEIGHTS.is_file()
+    has_model = DEFAULT_ONNX_WEIGHTS.is_file() or DEFAULT_WEIGHTS.is_file()
     return templates.TemplateResponse(
         request=request,
         name="index.html",
@@ -276,13 +301,7 @@ async def count_goats(
     crossing = _parse_direction(mode, direction)
     herd = max(0, herd_size)
 
-    pipeline = CountingPipeline(
-        weights=_weights_path(),
-        line_mode=mode,
-        line_y=line_y,
-        line_x=line_x,
-        direction=crossing,
-    )
+    pipeline = _get_pipeline(mode, line_x, line_y, crossing)
     result = pipeline.run(
         upload_path,
         output_video=out_path,

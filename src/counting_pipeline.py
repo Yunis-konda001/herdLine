@@ -178,28 +178,18 @@ class CountingPipeline:
     def _goat_detections(
         self, frame, frame_w: int, frame_h: int
     ) -> list[tuple[float, float, float, float, float, int]]:
-        # Predict + TrackMemory keeps more goats in dense herds than ByteTrack
-        result = self.detector.predict_frame(frame)
-        if result.boxes is None or len(result.boxes) == 0:
+        # ONNX or torch detect + TrackMemory (denser than ByteTrack on crowds)
+        raw = self.detector.detect_boxes(frame)
+        if not raw:
             return []
-        xyxy_all = result.boxes.xyxy.cpu().tolist()
-        conf_all = (
-            result.boxes.conf.cpu().tolist()
-            if result.boxes.conf is not None
-            else [1.0] * len(xyxy_all)
-        )
-        clss_all = (
-            result.boxes.cls.int().cpu().tolist()
-            if result.boxes.cls is not None
-            else [0] * len(xyxy_all)
-        )
+        xyxy_all = [[x1, y1, x2, y2] for x1, y1, x2, y2, _c, _t in raw]
+        conf_all = [float(c) for _x1, _y1, _x2, _y2, c, _t in raw]
+        clss_all = [GOAT_CLASS_ID] * len(raw)
         keep = select_goat_indices(
             xyxy_all, conf_all, clss_all, frame_w=frame_w, frame_h=frame_h
         )
         out: list[tuple[float, float, float, float, float, int]] = []
         for i in keep:
-            if int(clss_all[i]) != GOAT_CLASS_ID:
-                continue
             x1, y1, x2, y2 = xyxy_all[i]
             out.append((x1, y1, x2, y2, float(conf_all[i]), -1))
         return out

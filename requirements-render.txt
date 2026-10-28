@@ -1,0 +1,12 @@
+# Slim deps for Render — no PyTorch / Ultralytics (use best.onnx + ONNX Runtime)
+onnxruntime>=1.16.0
+opencv-python-headless>=4.8.0
+numpy>=1.24.0
+pyyaml>=6.0
+fastapi>=0.100.0
+uvicorn[standard]>=0.23.0
+itsdangerous>=2.1.0
+python-multipart>=0.0.6
+jinja2>=3.1.0
+pillow>=10.0.0
+imageio-ffmpeg>=0.4.9
