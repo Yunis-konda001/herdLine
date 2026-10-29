@@ -4,6 +4,12 @@ Herdline is a machine learning model that automates goat counting under controll
 
 Smallholder goat farmers count their herds manually every evening. When herds grow past 20–30 animals, counting becomes slow and error-prone, and missing goats are often noticed too late. HerdLine automates this using only a phone camera and a short video of goats passing through a narrow gate.
 
+## Technical report and walkthrough video links
+
+Technical report: https://docs.google.com/document/d/1S0U4iyM2_SAl05I1u3ZrIPhJz8awk9jPbzd87OAWZsw/edit?tab=t.29k08x4r9b8k
+
+Demo Video: https://youtu.be/pmawrw_ACXE
+
 ## Screenshots
 
 | Sign in | New check-in |
