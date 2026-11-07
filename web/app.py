@@ -330,6 +330,8 @@ async def count_goats(
         "videoUrl": video_url,
         "accuracy": accuracy_pct,
         "framesProcessed": result.frames_processed,
+        "rejectionReason": result.rejection_reason,
+        "accepted": result.accepted,
     }
 
     return templates.TemplateResponse(

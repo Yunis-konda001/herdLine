@@ -11,6 +11,9 @@ Use the slim stack: `best.onnx` + ONNX Runtime — **no PyTorch** on the server.
 | Start command | `uvicorn web.app:app --host 0.0.0.0 --port $PORT` |
 | Env `HERDLINE_IMGSZ` | `640` |
 | Env `HERDLINE_CONF` | `0.18` |
+| Env `HERDLINE_FRAME_STRIDE` | `2` (set `1` for max recall) |
+| Env `HERDLINE_LINE_SEARCH` | `fast` |
+| Env `HERDLINE_CONF` | `0.15` |
 | Plan | Prefer **≥2 GB RAM** (512 MB still may fail) |
 
 ## Required files on the service

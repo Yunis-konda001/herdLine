@@ -60,11 +60,12 @@ class TrackMemory:
                 continue
             pred_x = track["cx"] + track["vx"] * gap
             pred_y = track["cy"] + track["vy"] * gap
-            scale = max(bw, track["bw"], bh, track["bh"], 0.08)
-            allowed = min(0.30, 1.0 * scale + 0.012 * gap)
+            # Tight match so neighbouring goats in a crowd keep separate IDs
+            scale = max(bw, track["bw"], bh, track["bh"], 0.06)
+            allowed = min(0.10, 0.55 * scale + 0.006 * gap)
             dx = abs(cx - pred_x)
             dy = abs(cy - pred_y)
-            if dx <= allowed and dy <= allowed * 0.85:
+            if dx <= allowed and dy <= allowed * 0.75:
                 dist = (dx ** 2 + dy ** 2) ** 0.5
                 if dist < best_d:
                     best_d = dist

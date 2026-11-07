@@ -68,7 +68,8 @@ class OnnxGoatDetector:
         self.conf = float(conf if conf is not None else CONFIDENCE_THRESHOLD)
         self.iou = float(iou if iou is not None else IOU_THRESHOLD)
         opts = ort.SessionOptions()
-        opts.intra_op_num_threads = 1
+        # A few threads speeds CPU inference without starving the web server
+        opts.intra_op_num_threads = 2
         opts.inter_op_num_threads = 1
         self.session = ort.InferenceSession(
             str(path),

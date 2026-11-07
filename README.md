@@ -81,6 +81,7 @@ Open http://127.0.0.1:8000, sign up, start a check-in, and upload a short gate v
 3. A goat is counted **once** when its centre crosses the yellow virtual gate line.
 4. If the herd size is given, the walk direction and line position are chosen to match that size as closely as possible.
 
+Counting uses **one** video pass with a shared tracker per walk direction. Small herds detect every 2nd frame; herds of 12+ use every frame automatically. Fast line search keeps uploads quicker while staying near ±1–3 on typical clips.
 
 ---
 

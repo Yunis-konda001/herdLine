@@ -10,7 +10,9 @@
         <section class="summary-hero status-{{ status }}">
           <div class="summary-hero__top">
             <span class="summary-date-label">Check-in · {{ recorded_at[:10] if recorded_at else 'Today' }}</span>
-            {% if status == 'complete' %}
+            {% if status == 'rejected' %}
+            <span class="badge badge-missing">Rejected</span>
+            {% elif status == 'complete' %}
             <span class="badge badge-complete">Complete</span>
             {% elif status == 'missing' %}
             <span class="badge badge-missing">Missing</span>
@@ -20,7 +22,9 @@
           </div>
 
           <h1 class="summary-headline">
-            {% if status == 'complete' %}
+            {% if status == 'rejected' %}
+              No goats detected
+            {% elif status == 'complete' %}
               All accounted for
             {% elif status == 'missing' %}
               {{ result.missing_count }} goat{% if result.missing_count != 1 %}s{% endif %} may be missing
@@ -32,7 +36,9 @@
           </h1>
 
           <p class="summary-lede">
-            {% if result.herd_size is not none %}
+            {% if status == 'rejected' %}
+              {{ result.rejection_reason }}
+            {% elif result.herd_size is not none %}
               {{ result.total_count }} counted of {{ result.herd_size }} in your herd.
             {% else %}
               {{ result.total_count }} goats counted in this video.

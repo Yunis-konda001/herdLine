@@ -10,9 +10,9 @@ class LineCounter:
     """One count per goat for a vertical or horizontal gate line."""
 
     LINE_EPS = 0.01
-    # Tight: only block a *new* ID that is almost on top of a just-counted goat
-    SAME_GOAT_DIST = 0.055
-    SAME_GOAT_DY = 0.08
+    # Very tight: dense herds walk close; do not merge distinct goats
+    SAME_GOAT_DIST = 0.035
+    SAME_GOAT_DY = 0.05
     MIN_AREA = 0.008
     MIN_SIDE = 0.08
     CROSS_MARGIN = 0.005

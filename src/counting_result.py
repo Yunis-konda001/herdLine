@@ -16,6 +16,8 @@ class CountingResult:
     session_name: str | None = None
     video_duration_sec: float | None = None
     mean_confidence: float | None = None
+    # Set when the clip does not look like a goat gate video (e.g. people only)
+    rejection_reason: str | None = None
 
     @property
     def reference_size(self) -> int | None:
@@ -45,6 +47,8 @@ class CountingResult:
 
     @property
     def herd_match_status(self) -> str:
+        if self.rejection_reason:
+            return "rejected"
         if self.herd_size is None:
             return "unknown"
         if self.total_count < self.herd_size:
@@ -52,6 +56,10 @@ class CountingResult:
         if self.total_count > self.herd_size:
             return "extra"
         return "complete"
+
+    @property
+    def accepted(self) -> bool:
+        return self.rejection_reason is None
 
     @property
     def actual_count(self) -> int | None:
@@ -99,13 +107,26 @@ class CountingResult:
     def report_lines(self) -> list[str]:
         lines = [
             f"Session: {self.session_name or 'unnamed'}",
-            f"Actual goat count: {self._num(self.actual_count)}",
-            f"System goat count: {self.total_count}",
-            f"Missed goats: {self._num(self.missed_goats)}",
-            f"Extra counts: {self._num(self.extra_counts)}",
-            "Duplicate counts: not separated from extra counts",
-            "False counts: not separated from extra counts",
         ]
+        if self.rejection_reason:
+            lines.extend(
+                [
+                    f"Status: rejected",
+                    f"Reason: {self.rejection_reason}",
+                    f"System goat count: 0",
+                ]
+            )
+            return lines
+        lines.extend(
+            [
+                f"Actual goat count: {self._num(self.actual_count)}",
+                f"System goat count: {self.total_count}",
+                f"Missed goats: {self._num(self.missed_goats)}",
+                f"Extra counts: {self._num(self.extra_counts)}",
+                "Duplicate counts: not separated from extra counts",
+                "False counts: not separated from extra counts",
+            ]
+        )
         if self.counting_accuracy_pct is None:
             lines.append("Counting accuracy: not calculated (no actual count)")
         else:
@@ -145,4 +166,6 @@ class CountingResult:
             "video_duration_sec": self.video_duration_sec,
             "session_name": self.session_name,
             "track_ids_counted": self.track_ids_counted,
+            "rejection_reason": self.rejection_reason,
+            "accepted": self.accepted,
         }
