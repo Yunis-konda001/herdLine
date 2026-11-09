@@ -83,8 +83,6 @@ Open http://127.0.0.1:8000, sign up, start a check-in, and upload a short gate v
 
 The system counts first, then measures the error against the hand count.
 
-Re-run the fixed-line eval anytime:
-
 ```bash
 python scripts/eval_fixed_line.py
 ```
