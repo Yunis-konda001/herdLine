@@ -1,6 +1,6 @@
 # HerdLine
 
-Herdline is a machine learning model that automates goat counting under controlled conditions, main condion being a narrow gate. Sign in, upload a clip, enter the herd size, and see how many goats crossed the line.
+Herdline is a machine learning model that automates goat counting under controlled conditions, with the main condition being a narrow gate. Sign in, upload a clip, enter the herd size, and see how many goats crossed the line.
 
 Smallholder goat farmers count their herds manually every evening. When herds grow past 20–30 animals, counting becomes slow and error-prone, and missing goats are often noticed too late. HerdLine automates this using only a phone camera and a short video of goats passing through a narrow gate.
 
@@ -29,7 +29,7 @@ Demo Video: https://youtu.be/pmawrw_ACXE
 | Detection | YOLOv8n (Ultralytics) |
 | Tracking | ByteTrack |
 | Backend | FastAPI + Uvicorn |
-| Frontend | HTML,CSS and Vanilla Javascript |
+| Frontend | HTML, CSS and Vanilla JavaScript |
 | Deployment | Local (PyTorch) or Render with `best.onnx` + ONNX Runtime |
 
 ---
@@ -77,11 +77,11 @@ Open http://127.0.0.1:8000, sign up, start a check-in, and upload a short gate v
 ## How counting works
 
 1. YOLOv8n (ONNX in production) finds goats in each frame.
-2. Weak / odd / people-like boxes are filtered out.
+2. Weak/odd / people-like boxes are filtered out.
 3. A goat is counted **once** when its centre crosses a **fixed** yellow virtual gate line (default `x=0.5`, direction **`either`** so L→R and R→L both count; advanced form settings can lock one way).
-4. **Herd size is not used to choose the line.** It is only compared afterward to show missing / extra animals.
+4. **Herd size is not used to choose the line.** It is only compared afterward to show missing/extra animals.
 
-This keeps evaluation honest: the system counts first, then we measure error against the hand count.
+The system counts first, then measures the error against the hand count.
 
 Re-run the fixed-line eval anytime:
 
@@ -104,7 +104,7 @@ Same defaults for every clip: vertical line at **0.5**, direction **either**.
 | test_video_12_goats.mp4 | 12 | 8 | -4 | 4 | 0 | 0.667 | 84.3 |
 | test_video_17_goats.mp4 | 17 | 5 | -12 | 12 | 0 | 0.294 | 42.3 |
 
-Mean counting accuracy on this set: **0.710**. Sparse clips are within 0–2 animals; dense / crowded gates (especially 17) still undercount.
+Mean counting accuracy on this set: **0.710**. Sparse clips are within 0–2 animals; dense/crowded gates (especially 17) still undercount.
 
 ---
 
