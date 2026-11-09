@@ -1,6 +1,4 @@
-# Public URL for testing (defense)
-
-You need a link other people can open. Vercel and Netlify cannot run this app.
+# Public URL for testing 
 
 ## Best option for defense day: tunnel from your laptop
 

@@ -60,18 +60,19 @@
     const opts = directionSelect.options;
     for (let i = 0; i < opts.length; i++) {
       const v = opts[i].value;
+      const isEither = v === "either";
       const isVert = v === "left_to_right" || v === "right_to_left";
       const isHoriz = v === "down" || v === "up";
-      opts[i].hidden = vertical ? !isVert : !isHoriz;
+      opts[i].hidden = vertical ? !(isEither || isVert) : !(isEither || isHoriz);
     }
     const current = directionSelect.value;
     const valid = vertical
-      ? current === "left_to_right" || current === "right_to_left"
-      : current === "down" || current === "up";
+      ? current === "either" || current === "left_to_right" || current === "right_to_left"
+      : current === "either" || current === "down" || current === "up";
     if (!valid) {
       directionSelect.value = vertical
-        ? directionSelect.dataset.defaultVertical || "right_to_left"
-        : directionSelect.dataset.defaultHorizontal || "down";
+        ? directionSelect.dataset.defaultVertical || "either"
+        : directionSelect.dataset.defaultHorizontal || "either";
     }
   }
 

@@ -18,7 +18,10 @@ FALLBACK_WEIGHTS = "yolov8n.pt"
 DEFAULT_LINE_MODE = "vertical"
 DEFAULT_LINE_X = 0.5
 DEFAULT_LINE_Y = 0.5
-DEFAULT_CROSSING_DIRECTION = "right_to_left"
+# Fixed gate convention (not fitted per video to herd size).
+# "either" counts L→R and R→L (walk direction does not zero the count).
+# Users can still lock one way in the form advanced settings.
+DEFAULT_CROSSING_DIRECTION = "either"
 
 
 # On Render, set HERDLINE_IMGSZ=640 (matches exported ONNX) to save RAM.
@@ -41,19 +44,20 @@ MIN_STRONG_GOAT_HITS = int(os.getenv("HERDLINE_MIN_STRONG_HITS", "20"))
 GOAT_LIKE_MAX_HW = float(os.getenv("HERDLINE_GOAT_LIKE_HW", "1.35"))
 PERSON_LIKE_MIN_HW = float(os.getenv("HERDLINE_PERSON_LIKE_HW", "1.40"))
 
-# Need a few sightings before a track can cross-count (drops flicker FPs)
-MIN_TRACK_HITS = int(os.getenv("HERDLINE_MIN_TRACK_HITS", "3"))
+# Need a few sightings before a track can cross-count (drops flicker FPs).
+# 2 keeps short gate clips from dropping valid crossings.
+MIN_TRACK_HITS = int(os.getenv("HERDLINE_MIN_TRACK_HITS", "2"))
 
-# Base detect stride. Large herds auto-use 1 (see CountingPipeline).
+# Base detect stride. Sparse clips prefer 2 (avoids ID over-merge).
+# Dense herds auto-use 1 (see CountingPipeline).
 FRAME_STRIDE = max(1, int(os.getenv("HERDLINE_FRAME_STRIDE", "2")))
 # When declared herd size is at least this, force stride=1 for recall.
-DENSE_HERD_STRIDE_THRESHOLD = int(os.getenv("HERDLINE_DENSE_HERD", "12"))
+DENSE_HERD_STRIDE_THRESHOLD = int(os.getenv("HERDLINE_DENSE_HERD", "8"))
 
-# Line search 
-#   fast = fewer line positions (good speed/accuracy balance)
-#   full = denser grid
-#   off  = form line/direction only
-LINE_SEARCH_MODE = os.getenv("HERDLINE_LINE_SEARCH", "fast").strip().lower()
+# Line search is OFF by default: count with a fixed gate line, then compare to herd size.
+# (Do not fit line/direction to the declared herd size — that inflates accuracy.)
+# Set HERDLINE_LINE_SEARCH=fast|full only for experiments.
+LINE_SEARCH_MODE = os.getenv("HERDLINE_LINE_SEARCH", "off").strip().lower()
 
 # Smaller goats in wide shots — was 32 and dropped many distant boxes
 MIN_BOX_PX = int(os.getenv("HERDLINE_MIN_BOX_PX", "20"))

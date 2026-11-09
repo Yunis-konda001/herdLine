@@ -36,7 +36,7 @@ from src.counting_pipeline import CountingPipeline  # noqa: E402
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
-ASSET_VERSION = "17"
+ASSET_VERSION = "18"
 SESSION_SECRET_PATH = OUTPUT_DIR / ".session_secret"
 _PIPELINE_CACHE: dict[tuple, CountingPipeline] = {}
 
@@ -139,12 +139,12 @@ def _get_pipeline(
 
 def _parse_direction(line_mode: str, direction: str) -> str:
     if line_mode == "vertical":
-        if direction in ("left_to_right", "right_to_left"):
+        if direction in ("left_to_right", "right_to_left", "either"):
             return direction
         return DEFAULT_CROSSING_DIRECTION
-    if direction in ("down", "up"):
+    if direction in ("down", "up", "either"):
         return direction
-    return "down"
+    return "either"
 
 
 @app.get("/", response_class=HTMLResponse)

@@ -1,4 +1,4 @@
-"""People / non-goat clips should return count 0, not a fake herd number."""
+"""Ignore anything that's not a goat."""
 from src.counting_pipeline import _has_goat_evidence
 from src.counting_result import CountingResult
 from src.detection_filters import select_goat_indices

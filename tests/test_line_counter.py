@@ -10,6 +10,14 @@ def _rtl_counter() -> LineCounter:
     )
 
 
+def _either_counter() -> LineCounter:
+    return LineCounter(
+        orientation="vertical",
+        line_x=0.5,
+        direction="either",
+    )
+
+
 def test_counts_only_when_line_is_crossed():
     c = _rtl_counter()
     c.begin_frame(1)
@@ -83,3 +91,34 @@ def test_next_goat_on_different_path_still_counts():
     c.update(2, 0.40, 0.20, bw=0.10, bh=0.16)
     c.end_frame()
     assert c.total == 2
+
+
+def test_either_counts_right_to_left():
+    c = _either_counter()
+    c.begin_frame(1)
+    assert c.update(1, 0.75, 0.5, bw=0.20, bh=0.25) is False
+    c.end_frame()
+    c.begin_frame(2)
+    assert c.update(1, 0.45, 0.5, bw=0.20, bh=0.25) is True
+    c.end_frame()
+    assert c.total == 1
+
+
+def test_either_counts_left_to_right():
+    c = _either_counter()
+    c.begin_frame(1)
+    assert c.update(1, 0.25, 0.5, bw=0.20, bh=0.25) is False
+    c.end_frame()
+    c.begin_frame(2)
+    assert c.update(1, 0.55, 0.5, bw=0.20, bh=0.25) is True
+    c.end_frame()
+    assert c.total == 1
+
+
+def test_either_counts_once_even_if_walk_reverses():
+    c = _either_counter()
+    for frame, x in enumerate((0.2, 0.55, 0.75, 0.4), start=1):
+        c.begin_frame(frame)
+        c.update(1, x, 0.5, bw=0.20, bh=0.25)
+        c.end_frame()
+    assert c.total == 1

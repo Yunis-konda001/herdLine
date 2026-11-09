@@ -1,4 +1,4 @@
-"""Counting report uses the entered actual count. It does not invent one."""
+"""Counting report uses the entered actual count."""
 from src.counting_result import CountingResult
 
 

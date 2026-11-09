@@ -258,20 +258,8 @@ class CountingPipeline:
     ) -> CountingResult:
         video_path = Path(video_path)
         out_path = Path(output_video) if output_video else None
-        ref = herd_size if herd_size and herd_size > 0 else expected_count
-
-        # One video read: score line/direction configs AND count (no second detect sweep)
-        if ref and LINE_SEARCH_MODE != "off":
-            return self._run_with_line_search(
-                video_path,
-                out_path=out_path,
-                expected_count=expected_count,
-                herd_size=herd_size,
-                draw=draw,
-                session_name=session_name,
-                ref=ref,
-            )
-
+        # Fixed gate line only. Herd size is an independent reference for
+        # missing/extra — it must not choose the line or inflate the count.
         return self._run_once(
             video_path,
             out_path=out_path,

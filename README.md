@@ -76,12 +76,35 @@ Open http://127.0.0.1:8000, sign up, start a check-in, and upload a short gate v
 
 ## How counting works
 
-1. YOLOv8n finds goats in each frame.
-2. Weak or odd boxes are filtered out.
-3. A goat is counted **once** when its centre crosses the yellow virtual gate line.
-4. If the herd size is given, the walk direction and line position are chosen to match that size as closely as possible.
+1. YOLOv8n (ONNX in production) finds goats in each frame.
+2. Weak / odd / people-like boxes are filtered out.
+3. A goat is counted **once** when its centre crosses a **fixed** yellow virtual gate line (default `x=0.5`, direction **`either`** so L→R and R→L both count; advanced form settings can lock one way).
+4. **Herd size is not used to choose the line.** It is only compared afterward to show missing / extra animals.
 
-Counting uses **one** video pass with a shared tracker per walk direction. Small herds detect every 2nd frame; herds of 12+ use every frame automatically. Fast line search keeps uploads quicker while staying near ±1–3 on typical clips.
+This keeps evaluation honest: the system counts first, then we measure error against the hand count.
+
+Re-run the fixed-line eval anytime:
+
+```bash
+python scripts/eval_fixed_line.py
+```
+
+Results are written to `outputs/results/fixed_line_eval.csv`.
+
+### Fixed-line counting eval (app pipeline)
+
+Same defaults for every clip: vertical line at **0.5**, direction **either**, no herd-size line fitting.
+
+| Video | Expected | System | Error | Misses | Extras | Accuracy | Time (s) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| test_video_4_goats.mp4 | 4 | 3 | -1 | 1 | 0 | 0.750 | 14.8 |
+| test_video_5_goats.mp4 | 5 | 4 | -1 | 1 | 0 | 0.800 | 8.3 |
+| test_video_6_goats.mp4 | 6 | 6 | +0 | 0 | 0 | 1.000 | 18.5 |
+| test_video_8_goats.mp4 | 8 | 6 | -2 | 2 | 0 | 0.750 | 42.9 |
+| test_video_12_goats.mp4 | 12 | 8 | -4 | 4 | 0 | 0.667 | 84.3 |
+| test_video_17_goats.mp4 | 17 | 5 | -12 | 12 | 0 | 0.294 | 42.3 |
+
+Mean counting accuracy on this set: **0.710**. Sparse clips are within 0–2 animals; dense / crowded gates (especially 17) still undercount.
 
 ---
 
@@ -89,9 +112,9 @@ Counting uses **one** video pass with a shared tracker per walk direction. Small
 
 Open `notebooks/goat_detection_and_counting.ipynb` for preprocessing, the Faster R-CNN baseline, YOLOv8n training, and metrics.
 
-- **Validation metrics at the end of training:** precision 0.91, recall 0.76, mAP@50 0.84.
+- **Validation metrics at the end of training:** precision 0.91, recall 0.76, mAP@50 0.84, F1 ≈ 0.83.
 - **Test-set metrics (held-out split):** precision 0.90, recall 0.74, F1 0.81, mAP@50 0.82.
-
+- **Gate-video counting:** use `scripts/eval_fixed_line.py` / the table above (fixed line; herd size for comparison only).
 
 ---
 
@@ -105,7 +128,7 @@ Open `notebooks/goat_detection_and_counting.ipynb` for preprocessing, the Faster
 
 ## Known limitation
 
-Recall on real gate video is lower than on still images. The system might end undercounting or overcounting at some instances. 
+Recall on real gate video is lower than on still images. Animals that never cross the fixed line are missed. Crowding and occlusion cause undercounts on large herds. Non-goat videos should return 0 / rejected rather than a fitted herd number. 
 
 ---
 

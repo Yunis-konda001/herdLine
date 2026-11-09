@@ -2,6 +2,9 @@
 
 Background boxes that never cross the line are ignored.
 The same track ID is never counted twice.
+
+Direction ``either`` counts a crossing in both ways (LTR or RTL / down or up),
+so walk direction does not zero the count.
 """
 from __future__ import annotations
 
@@ -45,11 +48,16 @@ class LineCounter:
         self._frame_idx = 0
 
         if orientation == "horizontal":
-            if direction not in ("down", "up"):
-                raise ValueError("horizontal direction must be 'down' or 'up'")
+            if direction not in ("down", "up", "either"):
+                raise ValueError(
+                    "horizontal direction must be 'down', 'up', or 'either'"
+                )
         else:
-            if direction not in ("left_to_right", "right_to_left"):
-                raise ValueError("vertical direction must be 'left_to_right' or 'right_to_left'")
+            if direction not in ("left_to_right", "right_to_left", "either"):
+                raise ValueError(
+                    "vertical direction must be 'left_to_right', "
+                    "'right_to_left', or 'either'"
+                )
 
     def begin_frame(self, frame_index: int) -> None:
         self._frame_idx = frame_index
@@ -94,7 +102,10 @@ class LineCounter:
             if zone in ("entry", "mid"):
                 self._seen_entry.add(track_id)
             elif zone == "exit" and self._line_distance(cx_norm, cy_norm) > 0.22:
-                self._already_past.add(track_id)
+                # One-way modes: already on the exit side → never count.
+                # Either-mode has no exit-only side; wait for a real cross.
+                if self.direction != "either":
+                    self._already_past.add(track_id)
             self._remember(track_id, cx_norm, cy_norm)
             self._store_prev(track_id, cx_norm, cy_norm)
             return False
@@ -103,7 +114,9 @@ class LineCounter:
             self._seen_entry.add(track_id)
 
         crossed = self._centroid_crossed(track_id, cx_norm, cy_norm)
-        on_entry_before = track_id in self._seen_entry or self._was_on_entry_side(track_id)
+        on_entry_before = track_id in self._seen_entry or self._was_on_entry_side(
+            track_id
+        )
 
         self._remember(track_id, cx_norm, cy_norm)
 
@@ -171,6 +184,11 @@ class LineCounter:
     def _current_zone(self, cx: float, cy: float) -> str:
         if self.orientation == "vertical":
             line = self.line_x
+            if self.direction == "either":
+                if abs(cx - line) <= self.LINE_EPS:
+                    return "mid"
+                # Both sides are valid entry; "exit" unused for either-mode.
+                return "entry"
             if self.direction == "left_to_right":
                 if cx < line - self.LINE_EPS:
                     return "entry"
@@ -183,6 +201,10 @@ class LineCounter:
                     return "exit"
             return "mid"
         line = self.line_y
+        if self.direction == "either":
+            if abs(cy - line) <= self.LINE_EPS:
+                return "mid"
+            return "entry"
         if self.direction == "down":
             if cy < line - self.LINE_EPS:
                 return "entry"
@@ -202,6 +224,10 @@ class LineCounter:
             if prev is None:
                 return False
             line = self.line_y
+            if self.direction == "either":
+                return (prev < line - m and cy >= line) or (
+                    prev > line + m and cy <= line
+                )
             if self.direction == "down":
                 return prev < line - m and cy >= line
             return prev > line + m and cy <= line
@@ -209,6 +235,8 @@ class LineCounter:
         if prev is None:
             return False
         line = self.line_x
+        if self.direction == "either":
+            return (prev < line - m and cx >= line) or (prev > line + m and cx <= line)
         if self.direction == "left_to_right":
             return prev < line - m and cx >= line
         return prev > line + m and cx <= line
