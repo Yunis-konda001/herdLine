@@ -93,7 +93,7 @@ Results are written to `outputs/results/fixed_line_eval.csv`.
 
 ### Fixed-line counting eval (app pipeline)
 
-Same defaults for every clip: vertical line at **0.5**, direction **either**, no herd-size line fitting.
+Same defaults for every clip: vertical line at **0.5**, direction **either**.
 
 | Video | Expected | System | Error | Misses | Extras | Accuracy | Time (s) |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
