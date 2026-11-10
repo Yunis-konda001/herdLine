@@ -29,8 +29,8 @@ Demo Video: https://youtu.be/pmawrw_ACXE
 | Detection | YOLOv8n (Ultralytics) |
 | Tracking | ByteTrack |
 | Backend | FastAPI + Uvicorn |
-| Frontend | HTML, CSS and Vanilla JavaScript |
-| Deployment | Local (PyTorch), Cloudflare Tunnel for a public demo URL, or Render with `best.onnx` + ONNX Runtime |
+| Frontend | HTML, CSS, and Vanilla JavaScript |
+| Deployment | Local (PyTorch), Cloudflare Tunnel for a public demo URL, and Render with `best.onnx` + ONNX Runtime |
 
 ---
 
