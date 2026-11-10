@@ -14,10 +14,16 @@ Check http://127.0.0.1:8000 first.
 
 ### 2. Make a public link (Cloudflare Tunnel)
 
-In a second terminal:
+In a second terminal (Git Bash on this PC):
 
 ```bash
-cloudflared tunnel --url http://127.0.0.1:8000
+"/c/Program Files (x86)/cloudflared/cloudflared.exe" tunnel --url http://127.0.0.1:8000
+```
+
+PowerShell:
+
+```powershell
+& "C:\Program Files (x86)\cloudflared\cloudflared.exe" tunnel --url http://127.0.0.1:8000
 ```
 
 Copy the `https://....trycloudflare.com` link.

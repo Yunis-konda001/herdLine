@@ -23,8 +23,3 @@
 
 Mean accuracy: **0.710**.
 
-## Notes for the report
-
-- Counting is independent of declared herd size (no line fitting).
-- Default direction `either` so opposite walk clips are not zeroed.
-- Dense / crowded gates (especially 17) still undercount; image mAP does not equal video counting accuracy.
