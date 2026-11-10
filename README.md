@@ -30,7 +30,7 @@ Demo Video: https://youtu.be/pmawrw_ACXE
 | Tracking | ByteTrack |
 | Backend | FastAPI + Uvicorn |
 | Frontend | HTML, CSS and Vanilla JavaScript |
-| Deployment | Local (PyTorch) or Render with `best.onnx` + ONNX Runtime |
+| Deployment | Local (PyTorch), Cloudflare Tunnel for a public demo URL, or Render with `best.onnx` + ONNX Runtime |
 
 ---
 
@@ -57,6 +57,36 @@ Open http://127.0.0.1:8000, sign up, start a check-in, and upload a short gate v
 
 ---
 
+## Share a public URL (Cloudflare Tunnel)
+
+For demos and remote testing, run the app on your laptop and expose it with **Cloudflare Tunnel**. Counting still runs on your machine — the tunnel only gives you an HTTPS link.
+
+1. Start the app (keep this terminal open):
+
+```bash
+uvicorn web.app:app --host 0.0.0.0 --port 8000
+```
+
+2. In a second terminal, start the tunnel:
+
+```bash
+# Git Bash (this PC)
+"/c/Program Files (x86)/cloudflared/cloudflared.exe" tunnel --url http://127.0.0.1:8000
+```
+
+```powershell
+# PowerShell
+& "C:\Program Files (x86)\cloudflared\cloudflared.exe" tunnel --url http://127.0.0.1:8000
+```
+
+3. Copy the `https://….trycloudflare.com` URL from the tunnel log and share it. Keep **both** terminals open while people test.
+
+Full notes: [`docs/DEPLOY.md`](docs/DEPLOY.md).
+
+**Not supported:** Cloudflare Workers / “Set up your application” with `npx wrangler deploy`. HerdLine needs Python, OpenCV, and long video jobs — use Tunnel (above) or Render ([`docs/RENDER.md`](docs/RENDER.md)), not Workers.
+
+---
+
 ## What's in the repo
 
 | Path | Role |
@@ -68,7 +98,7 @@ Open http://127.0.0.1:8000, sign up, start a check-in, and upload a short gate v
 | `config/bytetrack.yaml` | Tracker settings |
 | `data/videos/evaluation/` | Sample gate clips (hand counts in the filenames) |
 | `notebooks/goat_detection_and_counting.ipynb` | Training and evaluation notes |
-| `docs/DEPLOY.md` | How to share a public test URL |
+| `docs/DEPLOY.md` | Cloudflare Tunnel / public demo URL |
 | `docs/RENDER.md` | Render deploy with ONNX (no PyTorch) |
 | `requirements-render.txt` | Slim pip deps for Render |
 
