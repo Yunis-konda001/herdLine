@@ -83,7 +83,6 @@ uvicorn web.app:app --host 0.0.0.0 --port 8000
 
 Full notes: [`docs/DEPLOY.md`](docs/DEPLOY.md).
 
-**Not supported:** Cloudflare Workers / “Set up your application” with `npx wrangler deploy`. HerdLine needs Python, OpenCV, and long video jobs — use Tunnel (above) or Render ([`docs/RENDER.md`](docs/RENDER.md)), not Workers.
 
 ---
 
