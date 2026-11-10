@@ -6,6 +6,8 @@ Smallholder goat farmers count their herds manually every evening. When herds gr
 
 ## Technical report and walkthrough video links
 
+Public deployment URL: https://herdline.onrender.com/
+
 Technical report: https://docs.google.com/document/d/1S0U4iyM2_SAl05I1u3ZrIPhJz8awk9jPbzd87OAWZsw/edit?tab=t.29k08x4r9b8k
 
 Demo Video: https://youtu.be/pmawrw_ACXE
