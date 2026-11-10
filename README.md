@@ -137,11 +137,11 @@ Mean counting accuracy on this set: **0.710**. Sparse clips are within 0–2 ani
 
 ## Notebook
 
-Open `notebooks/goat_detection_and_counting.ipynb` for preprocessing, the Faster R-CNN baseline, YOLOv8n training, and metrics.
+Open `notebooks/goat_detection_and_counting.ipynb` for preprocessing, the R-CNN baseline, YOLOv8n training, and metrics.
 
 - **Validation metrics at the end of training:** precision 0.91, recall 0.76, mAP@50 0.84, F1 ≈ 0.83.
 - **Test-set metrics (held-out split):** precision 0.90, recall 0.74, F1 0.81, mAP@50 0.82.
-- **Gate-video counting:** use `scripts/eval_fixed_line.py` / the table above (fixed line; herd size for comparison only).
+- **Gate-video counting:** use `scripts/eval_fixed_line.py` / the table above shows the comparison result after the evaluation.
 
 ---
 
