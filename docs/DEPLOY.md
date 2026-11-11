@@ -1,6 +1,6 @@
 # Public URL for testing 
 
-## Best option for defense day: tunnel from your laptop
+## There are two options for public url testing conducted. Render and cloudflare tunnel from your laptop
 
 ### 1. Start the app
 
@@ -47,4 +47,4 @@ pip install -r requirements.txt
 uvicorn web.app:app --host 0.0.0.0 --port 8000
 ```
 
-Put HTTPS in front if you can. Raise the proxy timeout to at least 5 minutes.
+The second deploy is via render though it has space limit. You will first need to convert the model to ONNX then deploy it.
