@@ -6,6 +6,8 @@ Smallholder goat farmers count their herds manually every evening. When herds gr
 
 ## Technical report and walkthrough video links
 
+Public deployment URL: https://herdline.onrender.com/
+
 Technical report: https://docs.google.com/document/d/1S0U4iyM2_SAl05I1u3ZrIPhJz8awk9jPbzd87OAWZsw/edit?tab=t.29k08x4r9b8k
 
 Demo Video: https://youtu.be/pmawrw_ACXE
@@ -29,8 +31,8 @@ Demo Video: https://youtu.be/pmawrw_ACXE
 | Detection | YOLOv8n (Ultralytics) |
 | Tracking | ByteTrack |
 | Backend | FastAPI + Uvicorn |
-| Frontend | HTML, CSS and Vanilla JavaScript |
-| Deployment | Local (PyTorch), Cloudflare Tunnel for a public demo URL, or Render with `best.onnx` + ONNX Runtime |
+| Frontend | HTML, CSS, and Vanilla JavaScript |
+| Deployment | Local (PyTorch), Cloudflare Tunnel for a public demo URL, and Render with `best.onnx` + ONNX Runtime |
 
 ---
 
@@ -57,9 +59,9 @@ Open http://127.0.0.1:8000, sign up, start a check-in, and upload a short gate v
 
 ---
 
-## Share a public URL (Cloudflare Tunnel)
+## Share a public URL either via Cloudflare Tunnel or Render
 
-For demos and remote testing, run the app on your laptop and expose it with **Cloudflare Tunnel**. Counting still runs on your machine — the tunnel only gives you an HTTPS link.
+For demos and remote testing, run the app on your laptop and expose it with **Cloudflare Tunnel**. Counting still runs on your machine, the tunnel only gives you an HTTPS link.
 
 1. Start the app (keep this terminal open):
 
@@ -83,7 +85,6 @@ uvicorn web.app:app --host 0.0.0.0 --port 8000
 
 Full notes: [`docs/DEPLOY.md`](docs/DEPLOY.md).
 
-**Not supported:** Cloudflare Workers / “Set up your application” with `npx wrangler deploy`. HerdLine needs Python, OpenCV, and long video jobs — use Tunnel (above) or Render ([`docs/RENDER.md`](docs/RENDER.md)), not Workers.
 
 ---
 
@@ -119,7 +120,7 @@ python scripts/eval_fixed_line.py
 
 Results are written to `outputs/results/fixed_line_eval.csv`.
 
-### Fixed-line counting eval (app pipeline)
+### Fixed-line counting evaluation
 
 Same defaults for every clip: vertical line at **0.5**, direction **either**.
 
@@ -132,17 +133,17 @@ Same defaults for every clip: vertical line at **0.5**, direction **either**.
 | test_video_12_goats.mp4 | 12 | 8 | -4 | 4 | 0 | 0.667 | 84.3 |
 | test_video_17_goats.mp4 | 17 | 5 | -12 | 12 | 0 | 0.294 | 42.3 |
 
-Mean counting accuracy on this set: **0.710**. Sparse clips are within 0–2 animals; dense/crowded gates (especially 17) still undercount.
+Mean counting accuracy on this set: **0.710**.
 
 ---
 
 ## Notebook
 
-Open `notebooks/goat_detection_and_counting.ipynb` for preprocessing, the Faster R-CNN baseline, YOLOv8n training, and metrics.
+Open `notebooks/goat_detection_and_counting.ipynb` for preprocessing, the R-CNN baseline, YOLOv8n training, and metrics.
 
 - **Validation metrics at the end of training:** precision 0.91, recall 0.76, mAP@50 0.84, F1 ≈ 0.83.
 - **Test-set metrics (held-out split):** precision 0.90, recall 0.74, F1 0.81, mAP@50 0.82.
-- **Gate-video counting:** use `scripts/eval_fixed_line.py` / the table above (fixed line; herd size for comparison only).
+- **Gate-video counting:** use `scripts/eval_fixed_line.py` / the table above shows the comparison results after the evaluation.
 
 ---
 
