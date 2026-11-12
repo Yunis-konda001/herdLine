@@ -150,14 +150,14 @@ Open `notebooks/goat_detection_and_counting.ipynb` for preprocessing, the R-CNN 
 ## Dataset
 
 - **CherryChevre** — public goat dataset used for training and evaluation.
-- Training images (~9 GB) are kept locally and are not included in the repo.
+- Training images (~9 GB) are kept locally and are not included in the repo because of the github space limit.
 - Only `data/goat.yaml` is included so the data path can be reproduced.
 
 ---
 
 ## Known limitation
 
-Recall on real gate video is lower than on still images. Animals that never cross the fixed line are missed. Crowding and occlusion cause undercounts on large herds. Non-goat videos should return 0 / rejected rather than a fitted herd number. 
+Recall on real gate video is lower than on still images. Animals that never cross the fixed line are missed. Crowding and occlusion cause undercounts on large herds. The precision, recall and mAP are high but the model still have poor counting accuracy in some cases.
 
 ---
 
