@@ -18,8 +18,7 @@ FALLBACK_WEIGHTS = "yolov8n.pt"
 DEFAULT_LINE_MODE = "vertical"
 DEFAULT_LINE_X = 0.5
 DEFAULT_LINE_Y = 0.5
-# Fixed gate convention (not fitted per video to herd size).
-# "either" counts L→R and R→L (walk direction does not zero the count).
+# "either" counts L→R and R→L (walk direction does not affect the counting).
 # Users can still lock one way in the form advanced settings.
 DEFAULT_CROSSING_DIRECTION = "either"
 
@@ -51,11 +50,10 @@ MIN_TRACK_HITS = int(os.getenv("HERDLINE_MIN_TRACK_HITS", "2"))
 # Base detect stride. Sparse clips prefer 2 (avoids ID over-merge).
 # Dense herds auto-use 1 (see CountingPipeline).
 FRAME_STRIDE = max(1, int(os.getenv("HERDLINE_FRAME_STRIDE", "2")))
-# When declared herd size is at least this, force stride=1 for recall.
+# When declared herd size is at least this, stride=1 is used for recall.
 DENSE_HERD_STRIDE_THRESHOLD = int(os.getenv("HERDLINE_DENSE_HERD", "8"))
 
 # Line search is OFF by default: count with a fixed gate line, then compare to herd size.
-# (Do not fit line/direction to the declared herd size — that inflates accuracy.)
 # Set HERDLINE_LINE_SEARCH=fast|full only for experiments.
 LINE_SEARCH_MODE = os.getenv("HERDLINE_LINE_SEARCH", "off").strip().lower()
 

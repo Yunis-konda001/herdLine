@@ -2,6 +2,7 @@
 from src.counting_pipeline import _has_goat_evidence
 from src.counting_result import CountingResult
 from src.detection_filters import select_goat_indices
+from src.livestock_gate import looks_like_cattle_clip
 
 
 def test_tall_person_box_is_filtered():
@@ -69,3 +70,39 @@ def test_rejected_result_forces_zero_count():
     )
     assert result.total_count == 0
     assert result.herd_match_status == "rejected"
+
+
+def test_cattle_density_rule_rejects_herd_like_clips():
+    assert looks_like_cattle_clip(
+        cattle_hits=40, samples=8, positive_frames=8, max_in_frame=7
+    )
+    assert looks_like_cattle_clip(
+        cattle_hits=9, samples=4, positive_frames=4, max_in_frame=3
+    )
+
+
+def test_sparse_cow_false_labels_do_not_reject():
+    # Goat clips can get a few COCO "cow" misfires — must not zero the count
+    assert not looks_like_cattle_clip(
+        cattle_hits=21, samples=13, positive_frames=10, max_in_frame=3
+    )
+    assert not looks_like_cattle_clip(
+        cattle_hits=0, samples=10, positive_frames=0, max_in_frame=0
+    )
+
+
+def test_cattle_evidence_rejects_goat_count():
+    ok, reason = _has_goat_evidence(
+        kept_hits=80,
+        strong_goat_hits=40,
+        max_conf=0.80,
+        mean_conf=0.55,
+        person_like_hits=0,
+        hog_person_hits=0,
+        cattle_hits=48,
+        cattle_samples=8,
+        cattle_positive_frames=8,
+        cattle_max_in_frame=7,
+    )
+    assert ok is False
+    assert reason and "livestock" in reason.lower()

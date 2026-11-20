@@ -169,6 +169,6 @@ Released for academic and research use. Third-party libraries retain their origi
 
 ## Contact
 
-- **Author:** Kumi Yunis Konda — k.konda@alustudent.com
+- **Author:** Kumi Yunis Konda 
 - **Supervisor:** Hubert Apana
 - **Institution:** African Leadership University, BSc Software Engineering

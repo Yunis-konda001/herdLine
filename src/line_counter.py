@@ -97,7 +97,7 @@ class LineCounter:
             self._store_prev(track_id, cx_norm, cy_norm)
             return False
 
-        # First sight: watch only. Count only when the line is crossed.
+        # Count only when the line is crossed.
         if track_id not in self._prev_x:
             if zone in ("entry", "mid"):
                 self._seen_entry.add(track_id)

@@ -67,7 +67,7 @@ def select_goat_indices(
 
 
 def _same_animal(a: list[float], b: list[float]) -> bool:
-    # Head box inside body box is still one goat
+    # Head box inside body box is still one goat and should be merged
     if _box_iou(a, b) >= 0.25:
         return True
     return _centroid_in(a, b) or _centroid_in(b, a)

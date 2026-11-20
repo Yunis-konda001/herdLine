@@ -27,6 +27,7 @@ from src.counting_result import CountingResult
 from src.detection_filters import select_goat_indices
 from src.goat_detector import GoatDetector
 from src.line_counter import LineCounter
+from src.livestock_gate import count_cattle_rough, looks_like_cattle_clip
 from src.person_gate import count_people_rough
 from src.track_memory import TrackMemory
 from src.video_encode import make_browser_playable
@@ -44,7 +45,7 @@ def _opposite_direction(direction: str) -> str:
 
 
 def _pick_cost(count: int, ref: int) -> float:
-    # Prefer exact / miss-1 / miss-2; large overcount is worse than a small miss
+    
     diff = count - ref
     if diff == 0:
         return 0.0
@@ -97,12 +98,23 @@ def _has_goat_evidence(
     mean_conf: float | None,
     person_like_hits: int,
     hog_person_hits: int,
+    cattle_hits: int = 0,
+    cattle_samples: int = 0,
+    cattle_positive_frames: int = 0,
+    cattle_max_in_frame: int = 0,
 ) -> tuple[bool, str | None]:
     """Return (ok, reason). Non-goat / people clips must not produce a herd count."""
     if kept_hits <= 0:
         return False, (
             "No goats detected in this video. "
             "Upload a short gate clip that clearly shows goats."
+        )
+    if looks_like_cattle_clip(
+        cattle_hits, cattle_samples, cattle_positive_frames, cattle_max_in_frame
+    ):
+        return False, (
+            "This video looks like other livestock (for example cattle), not goats. "
+            "HerdLine only counts goats at a gate."
         )
     if hog_person_hits >= 5 and strong_goat_hits < MIN_STRONG_GOAT_HITS:
         return False, (
@@ -145,6 +157,10 @@ def _finalize_result(
     max_conf: float,
     person_like_hits: int,
     hog_person_hits: int,
+    cattle_hits: int = 0,
+    cattle_samples: int = 0,
+    cattle_positive_frames: int = 0,
+    cattle_max_in_frame: int = 0,
 ) -> CountingResult:
     mean_conf = (conf_sum / conf_n) if conf_n else None
     duration = (
@@ -157,8 +173,12 @@ def _finalize_result(
         mean_conf,
         person_like_hits,
         hog_person_hits,
+        cattle_hits=cattle_hits,
+        cattle_samples=cattle_samples,
+        cattle_positive_frames=cattle_positive_frames,
+        cattle_max_in_frame=cattle_max_in_frame,
     )
-    # Always report 0 when the clip is not clearly goats (never invent a herd count)
+    # Always report 0 when the clip is not clearly goats 
     if not ok:
         return CountingResult(
             total_count=0,
@@ -340,6 +360,10 @@ class CountingPipeline:
         strong_goat_hits = 0
         person_like_hits = 0
         hog_person_hits = 0
+        cattle_hits = 0
+        cattle_samples = 0
+        cattle_positive_frames = 0
+        cattle_max_in_frame = 0
         max_conf = 0.0
         video_fps = processor.fps
         stride = _effective_stride(herd_size)
@@ -356,9 +380,15 @@ class CountingPipeline:
                     c.begin_frame(frames_processed)
 
                 if detect_this:
-                    # Sample person detector every ~15 processed detect frames
+                    # Sample person / cattle gates every ~15 processed detect frames
                     if frames_processed % (stride * 15) < stride:
                         hog_person_hits += count_people_rough(frame)
+                        n_cattle = count_cattle_rough(frame)
+                        cattle_samples += 1
+                        cattle_hits += n_cattle
+                        cattle_max_in_frame = max(cattle_max_in_frame, n_cattle)
+                        if n_cattle > 0:
+                            cattle_positive_frames += 1
                     frame_boxes: list[tuple[int, int, int, int, int]] = []
                     for x1, y1, x2, y2, conf, _tid in self._goat_detections(
                         frame, processor.width, processor.height
@@ -459,6 +489,10 @@ class CountingPipeline:
             max_conf=max_conf,
             person_like_hits=person_like_hits,
             hog_person_hits=hog_person_hits,
+            cattle_hits=cattle_hits,
+            cattle_samples=cattle_samples,
+            cattle_positive_frames=cattle_positive_frames,
+            cattle_max_in_frame=cattle_max_in_frame,
         )
 
     def _goat_detections(
@@ -514,6 +548,10 @@ class CountingPipeline:
         strong_goat_hits = 0
         person_like_hits = 0
         hog_person_hits = 0
+        cattle_hits = 0
+        cattle_samples = 0
+        cattle_positive_frames = 0
+        cattle_max_in_frame = 0
         max_conf = 0.0
         video_fps = processor.fps
         line_y_px = int(line_y * processor.height)
@@ -530,6 +568,12 @@ class CountingPipeline:
                 if detect_this:
                     if frames_processed % (stride * 15) < stride:
                         hog_person_hits += count_people_rough(frame)
+                        n_cattle = count_cattle_rough(frame)
+                        cattle_samples += 1
+                        cattle_hits += n_cattle
+                        cattle_max_in_frame = max(cattle_max_in_frame, n_cattle)
+                        if n_cattle > 0:
+                            cattle_positive_frames += 1
                     frame_boxes: list[tuple[int, int, int, int, int]] = []
                     for x1, y1, x2, y2, conf, _bt_id in self._goat_detections(
                         frame, processor.width, processor.height
@@ -603,4 +647,8 @@ class CountingPipeline:
             max_conf=max_conf,
             person_like_hits=person_like_hits,
             hog_person_hits=hog_person_hits,
+            cattle_hits=cattle_hits,
+            cattle_samples=cattle_samples,
+            cattle_positive_frames=cattle_positive_frames,
+            cattle_max_in_frame=cattle_max_in_frame,
         )
