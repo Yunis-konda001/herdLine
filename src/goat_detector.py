@@ -1,4 +1,12 @@
-"""Load goat detector — prefer ONNX Runtime, fall back to Ultralytics/PyTorch."""
+"""Load goat detector — prefer ONNX Runtime, fall back to Ultralytics/PyTorch.
+
+- The system needs to work in two different environments:
+  1. Local development (has PyTorch installed, uses best.pt)
+  2. Cloud deployment on Render (no PyTorch, uses best.onnx for low memory)
+- This file acts as a "switch". It automatically detects which model format 
+  is available and loads the correct backend so the rest of the code doesn't 
+  have to care whether it's running on PyTorch or ONNX.
+"""
 from __future__ import annotations
 
 from pathlib import Path
@@ -16,6 +24,8 @@ from src.config import (
 
 
 def _resolve_weights(weights: Path | str | None) -> Path | str:
+    # Helper to figure out which weight file to use.
+    # If the user passed a specific path, use it.
     if weights is not None:
         path = Path(weights) if not isinstance(weights, str) or "://" not in weights else weights
         if isinstance(path, Path):
@@ -23,16 +33,20 @@ def _resolve_weights(weights: Path | str | None) -> Path | str:
                 return path
             if path.suffix.lower() == ".pt" and path.is_file():
                 onnx = path.with_suffix(".onnx")
+                # If a .pt is requested but a .onnx exists, prefer the ONNX.
                 if onnx.is_file():
                     return onnx
                 return path
             if path.is_file():
                 return path
         return weights
+    
+    # If no path was passed, check the default folders.
     if DEFAULT_ONNX_WEIGHTS.is_file():
         return DEFAULT_ONNX_WEIGHTS
     if DEFAULT_WEIGHTS.is_file():
         return DEFAULT_WEIGHTS
+    # Last resort: use the default YOLOv8n from the internet.
     return FALLBACK_WEIGHTS
 
 
@@ -45,20 +59,25 @@ class GoatDetector:
         self._onnx = None
         self._yolo = None
         path = Path(str(resolved))
+        
+        # If the file ends in .onnx, load the ONNX Runtime backend.
         if path.suffix.lower() == ".onnx":
             from src.onnx_goat_detector import OnnxGoatDetector
 
             self._onnx = OnnxGoatDetector(path)
         else:
+            # Otherwise, load the standard PyTorch/YOLO backend.
             from ultralytics import YOLO
 
             self._yolo = YOLO(str(resolved))
 
     @property
     def backend(self) -> str:
+        # Tells the rest of the system which backend is currently active.
         return "onnx" if self._onnx is not None else "torch"
 
     def reset_tracks(self) -> None:
+        # Clears any cached tracking data before processing a new video.
         if self._onnx is not None:
             self._onnx.reset_tracks()
         elif self._yolo is not None:
@@ -66,9 +85,11 @@ class GoatDetector:
 
     def detect_boxes(self, frame) -> list[tuple[float, float, float, float, float, int]]:
         """Return (x1, y1, x2, y2, conf, track_id) with track_id=-1 for detect-only."""
+        # If ONNX is loaded, use it.
         if self._onnx is not None:
             return self._onnx.detect_boxes(frame)
 
+        # Otherwise, run the PyTorch model and extract the boxes.
         result = self._yolo.predict(
             frame,
             conf=CONFIDENCE_THRESHOLD,
@@ -79,6 +100,8 @@ class GoatDetector:
         )[0]
         if result.boxes is None or len(result.boxes) == 0:
             return []
+        
+        # Convert the PyTorch tensors to standard Python lists.
         xyxy = result.boxes.xyxy.cpu().tolist()
         confs = (
             result.boxes.conf.cpu().tolist()
@@ -90,6 +113,8 @@ class GoatDetector:
             if result.boxes.cls is not None
             else [0] * len(xyxy)
         )
+        
+        # Filter out anything that isn't the Goat class.
         out: list[tuple[float, float, float, float, float, int]] = []
         for box, conf, cls in zip(xyxy, confs, clss):
             if int(cls) != GOAT_CLASS_ID:
@@ -100,6 +125,7 @@ class GoatDetector:
 
     def predict_frame(self, frame):
         """Legacy Ultralytics result API — only for torch backend."""
+        # ONNX doesn't use this; only the PyTorch backend does.
         if self._onnx is not None:
             raise RuntimeError("predict_frame is not available on the ONNX backend")
         return self._yolo.predict(
@@ -112,6 +138,7 @@ class GoatDetector:
         )[0]
 
     def track_frame(self, frame, persist: bool = True):
+        # ONNX doesn't use this; only the PyTorch backend does.
         if self._onnx is not None:
             raise RuntimeError("track_frame is not available on the ONNX backend")
         return self._yolo.track(

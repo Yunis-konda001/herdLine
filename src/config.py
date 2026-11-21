@@ -2,6 +2,7 @@
 import os
 from pathlib import Path
 
+# Define the absolute paths for the project folders.
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = PROJECT_ROOT / "data"
 MODELS_DIR = PROJECT_ROOT / "models" / "weights"
@@ -9,10 +10,11 @@ OUTPUT_DIR = PROJECT_ROOT / "outputs"
 UPLOAD_DIR = OUTPUT_DIR / "uploads"
 RESULTS_DIR = OUTPUT_DIR / "results"
 
+# Paths to the dataset configuration and model weights.
 DEFAULT_DATASET_YAML = DATA_DIR / "goat.yaml"
-DEFAULT_WEIGHTS = MODELS_DIR / "best.pt"
-DEFAULT_ONNX_WEIGHTS = MODELS_DIR / "best.onnx"
-FALLBACK_WEIGHTS = "yolov8n.pt"
+DEFAULT_WEIGHTS = MODELS_DIR / "best.pt"          # PyTorch weights (used locally)
+DEFAULT_ONNX_WEIGHTS = MODELS_DIR / "best.onnx"   # ONNX weights (used on Render to save RAM)
+FALLBACK_WEIGHTS = "yolov8n.pt"                   # Default weights if fine-tuned model is missing
 
 # Virtual gate line — a goat is counted when its centre crosses this line
 DEFAULT_LINE_MODE = "vertical"
@@ -25,6 +27,7 @@ DEFAULT_CROSSING_DIRECTION = "either"
 
 # On Render, set HERDLINE_IMGSZ=640 (matches exported ONNX) to save RAM.
 # High conf: background/people false boxes are usually weaker than real goats.
+# Uses environment variables (os.getenv) so we can tune these on the server without changing the code.
 CONFIDENCE_THRESHOLD = float(os.getenv("HERDLINE_CONF", "0.40"))
 IOU_THRESHOLD = float(os.getenv("HERDLINE_IOU", "0.70"))
 DETECT_IMGSZ = int(os.getenv("HERDLINE_IMGSZ", "640"))
@@ -68,4 +71,5 @@ REENCODE_RESULT = os.getenv("HERDLINE_REENCODE", "1").strip() not in {
     "no",
 }
 
+# Path to the ByteTrack configuration file.
 TRACKER = PROJECT_ROOT / "config" / "bytetrack.yaml"

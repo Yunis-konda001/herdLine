@@ -1,4 +1,12 @@
-"""YOLOv8 goat detection with ONNX Runtime (no PyTorch at inference)."""
+"""YOLOv8 goat detection with ONNX Runtime (no PyTorch at inference).
+
+- In the notebook, PyTorch handled image resizing, color conversion, and box filtering automatically.
+- In production, PyTorch is removed to save memory (512MB limit on Render).
+- ONNX Runtime is just a math engine; it doesn't know how to process images.
+- Therefore, this file manually handles the pre-processing (letterboxing, RGB conversion) 
+  and post-processing (NMS, scaling boxes back to the original size) so the ONNX model 
+  can be used inside the web app.
+"""
 from __future__ import annotations
 
 from pathlib import Path
@@ -18,6 +26,8 @@ from src.config import (
 def _letterbox(
     image: np.ndarray, new_size: int
 ) -> tuple[np.ndarray, float, tuple[float, float]]:
+    # Resizes the image to fit the model's expected square size (e.g., 640x640)
+    # while keeping the aspect ratio, and pads the rest with grey.
     h, w = image.shape[:2]
     scale = min(new_size / h, new_size / w)
     nw, nh = int(round(w * scale)), int(round(h * scale))
@@ -30,6 +40,8 @@ def _letterbox(
 
 
 def _nms_xyxy(boxes: np.ndarray, scores: np.ndarray, iou_thr: float) -> list[int]:
+    # Non-Maximum Suppression (NMS): removes duplicate boxes.
+    # If the model draws 3 boxes on the same goat, NMS keeps only the best one.
     if len(boxes) == 0:
         return []
     x1, y1, x2, y2 = boxes.T
@@ -64,13 +76,18 @@ class OnnxGoatDetector:
         path = Path(weights)
         if not path.is_file():
             raise FileNotFoundError(f"ONNX weights not found: {path}")
+        
         self.imgsz = int(imgsz or DETECT_IMGSZ)
         self.conf = float(conf if conf is not None else CONFIDENCE_THRESHOLD)
         self.iou = float(iou if iou is not None else IOU_THRESHOLD)
+        
+        # Configure ONNX Runtime to use CPU only (since Render has no GPU).
         opts = ort.SessionOptions()
         # A few threads speeds CPU inference without starving the web server
         opts.intra_op_num_threads = 2
         opts.inter_op_num_threads = 1
+        
+        # Load the ONNX model.
         self.session = ort.InferenceSession(
             str(path),
             sess_options=opts,
@@ -91,11 +108,17 @@ class OnnxGoatDetector:
         """Return (x1, y1, x2, y2, conf, class_id) in original frame pixels."""
         if frame is None or frame.size == 0:
             return []
+        
         orig_h, orig_w = frame.shape[:2]
+        
+        # 1. Resize and pad the image to 640x640 (Letterbox).
         letter, scale, (pad_x, pad_y) = _letterbox(frame, self.imgsz)
+        
+        # 2. Convert image to the format ONNX expects (RGB, normalized 0-1).
         blob = letter[:, :, ::-1].transpose(2, 0, 1).astype(np.float32) / 255.0
         blob = np.ascontiguousarray(blob[None])
 
+        # 3. Run the ONNX model on the image.
         outputs = self.session.run(None, {self.input_name: blob})
         pred = np.asarray(outputs[0])
         if pred.ndim == 3:
@@ -113,6 +136,7 @@ class OnnxGoatDetector:
             classes = class_scores.argmax(axis=1).astype(np.int32)
             scores = class_scores.max(axis=1)
 
+        # 4. Filter out boxes with confidence lower than our threshold (e.g., 0.40).
         mask = scores >= self.conf
         boxes_xywh = boxes_xywh[mask]
         scores = scores[mask]
@@ -120,7 +144,7 @@ class OnnxGoatDetector:
         if len(scores) == 0:
             return []
 
-        # xywh centre format → xyxy on letterboxed image
+        # 5. Convert from center (x,y,w,h) to corners (x1,y1,x2,y2).
         cx, cy, w, h = boxes_xywh.T
         x1 = cx - w / 2
         y1 = cy - h / 2
@@ -128,17 +152,19 @@ class OnnxGoatDetector:
         y2 = cy + h / 2
         boxes = np.stack([x1, y1, x2, y2], axis=1)
 
+        # 6. Remove duplicate boxes using Non-Maximum Suppression (NMS).
         keep = _nms_xyxy(boxes, scores, self.iou)
         boxes = boxes[keep]
         scores = scores[keep]
         classes = classes[keep]
 
-        # Undo letterbox
+        # 7. Undo the letterbox padding (scale the boxes back to the original video size).
         boxes[:, [0, 2]] = (boxes[:, [0, 2]] - pad_x) / scale
         boxes[:, [1, 3]] = (boxes[:, [1, 3]] - pad_y) / scale
         boxes[:, [0, 2]] = boxes[:, [0, 2]].clip(0, orig_w - 1)
         boxes[:, [1, 3]] = boxes[:, [1, 3]].clip(0, orig_h - 1)
 
+        # 8. Return the final list of boxes, keeping only the Goat class.
         out: list[tuple[float, float, float, float, float, int]] = []
         for (bx1, by1, bx2, by2), score, cls in zip(boxes, scores, classes):
             if int(cls) != GOAT_CLASS_ID:

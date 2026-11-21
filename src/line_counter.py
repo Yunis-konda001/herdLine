@@ -5,6 +5,12 @@ The same track ID is never counted twice.
 
 Direction ``either`` counts a crossing in both ways (LTR or RTL / down or up),
 so walk direction does not zero the count.
+
+- YOLO detects goats, and ByteTrack assigns them IDs.
+- But neither knows *when* to add to the total count.
+- This file is the actual gatekeeper. It watches the Track IDs and only 
+  increments the total when a goat physically crosses the line, ensuring
+  no goat is ever counted twice.
 """
 from __future__ import annotations
 
@@ -35,10 +41,12 @@ class LineCounter:
         self.line_x = line_x
         self.direction = direction
 
+        # The core memory: tracks that have already been counted, and those ignored.
         self._counted: set[int] = set()
         self._already_past: set[int] = set()
         self.total = 0
 
+        # Memory to track where each goat was in the previous frame.
         self._prev_x: dict[int, float] = {}
         self._prev_y: dict[int, float] = {}
         self._last_cx: dict[int, float] = {}
@@ -79,11 +87,13 @@ class LineCounter:
 
         zone = self._current_zone(cx_norm, cy_norm)
 
+        # If this ID was already counted or skipped, do nothing.
         if track_id in self._counted or track_id in self._already_past:
             self._remember(track_id, cx_norm, cy_norm)
             self._store_prev(track_id, cx_norm, cy_norm)
             return False
 
+        # If the box is too tiny, ignore it (likely noise).
         if bw > 0 and bh > 0 and bw * bh < self.MIN_AREA and max(bw, bh) < self.MIN_SIDE:
             self._already_past.add(track_id)
             self._remember(track_id, cx_norm, cy_norm)
@@ -113,6 +123,7 @@ class LineCounter:
         if zone in ("entry", "mid"):
             self._seen_entry.add(track_id)
 
+        # Check if the goat's center point crossed the line since the last frame.
         crossed = self._centroid_crossed(track_id, cx_norm, cy_norm)
         on_entry_before = track_id in self._seen_entry or self._was_on_entry_side(
             track_id
@@ -120,6 +131,7 @@ class LineCounter:
 
         self._remember(track_id, cx_norm, cy_norm)
 
+        # If it crossed the line, increment the total and lock the ID.
         if on_entry_before and crossed:
             self._counted.add(track_id)
             self.total += 1
@@ -142,15 +154,18 @@ class LineCounter:
         return match
 
     def _remember(self, track_id: int, cx: float, cy: float) -> None:
+        # Save the current position for the next frame.
         self._last_cx[track_id] = cx
         self._last_cy[track_id] = cy
         self._last_frame[track_id] = self._frame_idx
 
     def _store_prev(self, track_id: int, cx: float, cy: float) -> None:
+        # Store the position to compare against in the next frame.
         self._prev_x[track_id] = cx
         self._prev_y[track_id] = cy
 
     def _was_on_entry_side(self, track_id: int) -> bool:
+        # Check if the goat was on the starting side of the line.
         px = self._prev_x.get(track_id)
         py = self._prev_y.get(track_id)
         if px is None or py is None:
@@ -158,6 +173,8 @@ class LineCounter:
         return self._current_zone(px, py) in ("entry", "mid")
 
     def _match_counted(self, cx: float, cy: float) -> int | None:
+        # If a new ID appears very close to where a recently counted goat was,
+        # assume it's the same goat with a glitched ID.
         best_id = None
         best_dist = 999.0
         for track_id in self._counted:
@@ -177,11 +194,13 @@ class LineCounter:
         return best_id
 
     def _line_distance(self, cx: float, cy: float) -> float:
+        # Calculate how far the goat is from the line.
         if self.orientation == "vertical":
             return abs(cx - self.line_x)
         return abs(cy - self.line_y)
 
     def _current_zone(self, cx: float, cy: float) -> str:
+        # Determine if the goat is before the line, on the line, or past the line.
         if self.orientation == "vertical":
             line = self.line_x
             if self.direction == "either":
@@ -218,6 +237,7 @@ class LineCounter:
         return "mid"
 
     def _centroid_crossed(self, track_id: int, cx: float, cy: float) -> bool:
+        # The actual crossing math: compares previous position to current position.
         m = self.CROSS_MARGIN
         if self.orientation == "horizontal":
             prev = self._prev_y.get(track_id)
@@ -243,4 +263,5 @@ class LineCounter:
 
     @property
     def counted_ids(self) -> list[int]:
+        # Returns a sorted list of all the unique IDs that were counted.
         return sorted(self._counted)

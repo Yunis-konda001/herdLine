@@ -1,4 +1,12 @@
-"""One counting run: total, herd size, and report text."""
+"""One counting run: total, herd size, and report text.
+
+- The pipeline needs a standard way to return the final result back to the web app.
+- This file uses a Python `dataclass` to package the count, the accuracy, 
+  the video path, and any rejection reasons into one neat object.
+- It also calculates the "Accuracy" and "Missing/Extra" math on the fly 
+  using `@property` decorators, so the web app can just ask for `.counting_accuracy_pct` 
+  without doing the math itself.
+"""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -22,12 +30,14 @@ class CountingResult:
     @property
     def reference_size(self) -> int | None:
         """Ground truth size used for accuracy (herd profile or expected count)."""
+        # We use the herd_size as the truth. If that's missing, use expected_count.
         if self.herd_size is not None:
             return self.herd_size
         return self.expected_count
 
     @property
     def counting_accuracy(self) -> float | None:
+        # Calculate accuracy as a decimal (0.0 to 1.0).
         ref = self.reference_size
         if ref is None or ref == 0:
             return None
@@ -35,18 +45,21 @@ class CountingResult:
 
     @property
     def missing_count(self) -> int | None:
+        # How many goats are missing compared to the herd size.
         if self.herd_size is None:
             return None
         return max(0, self.herd_size - self.total_count)
 
     @property
     def extra_count(self) -> int | None:
+        # How many extra goats were counted compared to the herd size.
         if self.herd_size is None:
             return None
         return max(0, self.total_count - self.herd_size)
 
     @property
     def herd_match_status(self) -> str:
+        # A simple text label for the UI: complete, missing, extra, rejected, or unknown.
         if self.rejection_reason:
             return "rejected"
         if self.herd_size is None:
@@ -59,6 +72,7 @@ class CountingResult:
 
     @property
     def accepted(self) -> bool:
+        # Was the video accepted, or was it rejected (e.g. people or cattle)?
         return self.rejection_reason is None
 
     @property
@@ -84,6 +98,7 @@ class CountingResult:
 
         A higher count and a lower count both reduce this number.
         """
+        # Calculate accuracy as a percentage (0.0 to 100.0) for the UI.
         actual = self.actual_count
         if actual is None or actual == 0:
             return None
@@ -91,6 +106,7 @@ class CountingResult:
 
     @property
     def missed_goats(self) -> int | None:
+        # How many goats the system missed.
         actual = self.actual_count
         if actual is None:
             return None
@@ -99,12 +115,14 @@ class CountingResult:
     @property
     def extra_counts(self) -> int | None:
         """System total above the actual number. Not split into duplicate vs false."""
+        # How many extra goats the system counted.
         actual = self.actual_count
         if actual is None:
             return None
         return max(0, self.total_count - actual)
 
     def report_lines(self) -> list[str]:
+        # Generate a text report for the CLI or logs.
         lines = [
             f"Session: {self.session_name or 'unnamed'}",
         ]
@@ -146,9 +164,11 @@ class CountingResult:
 
     @staticmethod
     def _num(value: int | None) -> str:
+        # Helper to format a number or write "not given" if it is None.
         return "not given" if value is None else str(value)
 
     def to_dict(self) -> dict:
+        # Convert the dataclass to a dictionary so FastAPI can return it as JSON.
         return {
             "total_count": self.total_count,
             "frames_processed": self.frames_processed,
